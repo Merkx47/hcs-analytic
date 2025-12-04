@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { FAQChatbot } from "@/components/chatbot/faq-chatbot";
+import { I18nProvider } from "@/lib/i18n";
 import Dashboard from "@/pages/dashboard";
 import Analytics from "@/pages/analytics";
 import Resources from "@/pages/resources";
@@ -40,17 +41,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          <Header />
-          <div className="flex">
-            <Sidebar />
-            <main className="flex-1 h-[calc(100vh-4rem)] overflow-hidden">
-              <Router />
-            </main>
+        <I18nProvider>
+          <div className="min-h-screen bg-background">
+            <Header />
+            <div className="flex">
+              <Sidebar />
+              <main className="flex-1 h-[calc(100vh-4rem)] overflow-hidden">
+                <Router />
+              </main>
+            </div>
           </div>
-        </div>
-        <Toaster />
-        <FAQChatbot />
+          <Toaster />
+          <FAQChatbot />
+        </I18nProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateServiceBreakdown } from '@/lib/mock-data';
+import { generateServiceBreakdown, getDaysFromPreset } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
 import { useMemo } from 'react';
 import {
@@ -27,9 +27,10 @@ const CHART_COLORS = [
 ];
 
 export function ServiceBreakdownChart() {
-  const { currency, selectedTenantId } = useFinOpsStore();
-  
-  const breakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
+  const { currency, selectedTenantId, dateRange } = useFinOpsStore();
+
+  const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+  const breakdown = useMemo(() => generateServiceBreakdown(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
   const topServices = breakdown.slice(0, 8);
   
   const chartData = topServices.map((item, index) => ({
@@ -135,9 +136,10 @@ export function ServiceBreakdownChart() {
 }
 
 export function ServiceBreakdownTable() {
-  const { currency, selectedTenantId } = useFinOpsStore();
-  
-  const breakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
+  const { currency, selectedTenantId, dateRange } = useFinOpsStore();
+
+  const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+  const breakdown = useMemo(() => generateServiceBreakdown(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
 
   return (
     <motion.div

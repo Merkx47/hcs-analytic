@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateRegionBreakdown } from '@/lib/mock-data';
+import { generateRegionBreakdown, getDaysFromPreset } from '@/lib/mock-data';
 import { regionNames } from '@shared/schema';
 import { useMemo } from 'react';
 import {
@@ -22,9 +22,10 @@ const REGION_COLORS = [
 ];
 
 export function RegionBreakdownChart() {
-  const { currency, selectedTenantId } = useFinOpsStore();
-  
-  const breakdown = useMemo(() => generateRegionBreakdown(selectedTenantId), [selectedTenantId]);
+  const { currency, selectedTenantId, dateRange } = useFinOpsStore();
+
+  const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+  const breakdown = useMemo(() => generateRegionBreakdown(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
   
   const chartData = breakdown.map((item, index) => ({
     region: item.region,
@@ -88,13 +89,13 @@ export function RegionBreakdownChart() {
                   axisLine={{ stroke: 'hsl(var(--border))' }}
                   tickLine={false}
                 />
-                <YAxis 
+                <YAxis
                   type="category"
                   dataKey="name"
                   tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                   axisLine={false}
                   tickLine={false}
-                  width={110}
+                  width={130}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.3)' }} />
                 <Bar 

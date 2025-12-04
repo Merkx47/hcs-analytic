@@ -1,5 +1,6 @@
 import { useFinOpsStore, formatCompactCurrency } from '@/lib/finops-store';
 import { mockTenants, generateKPIs, getDaysFromPreset } from '@/lib/mock-data';
+import { LanguageSelector } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -24,7 +25,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import {
   Building2,
-  ChevronDown,
   Calendar,
   Bell,
   Settings,
@@ -33,7 +33,6 @@ import {
   Moon,
   Sun,
   AlertTriangle,
-  TrendingUp,
   CheckCircle2,
   Info,
 } from 'lucide-react';
@@ -98,7 +97,7 @@ export function Header() {
     setDateRange,
   } = useFinOpsStore();
 
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -275,6 +274,8 @@ export function Header() {
               ))}
             </SelectContent>
           </Select>
+
+          <LanguageSelector />
 
           <Button
             variant="ghost"

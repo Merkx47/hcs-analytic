@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateCostTrend, generateServiceBreakdown, generateRegionBreakdown, generateKPIs } from '@/lib/mock-data';
+import { generateCostTrend, generateServiceBreakdown, generateRegionBreakdown, generateKPIs, getDaysFromPreset } from '@/lib/mock-data';
 import { serviceInfo, regionNames } from '@shared/schema';
 import { useMemo } from 'react';
 import {
@@ -42,11 +42,14 @@ const CHART_COLORS = [
 
 export default function Analytics() {
   const { currency, selectedTenantId, dateRange } = useFinOpsStore();
-  
-  const costTrend = useMemo(() => generateCostTrend(selectedTenantId), [selectedTenantId]);
-  const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
-  const regionBreakdown = useMemo(() => generateRegionBreakdown(selectedTenantId), [selectedTenantId]);
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+
+  // Get days from the selected date range preset
+  const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+
+  const costTrend = useMemo(() => generateCostTrend(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
+  const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
+  const regionBreakdown = useMemo(() => generateRegionBreakdown(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
+  const kpis = useMemo(() => generateKPIs(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -112,7 +115,7 @@ export default function Analytics() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: 'Total Spend', value: kpis.totalSpend, trend: kpis.spendGrowthRate },
-            { label: 'Daily Average', value: kpis.totalSpend / 30, trend: null },
+            { label: 'Daily Average', value: kpis.totalSpend / daysInPeriod, trend: null },
             { label: 'Peak Day', value: Math.max(...costTrend.filter(d => d.amount > 0).map(d => d.amount)), trend: null },
             { label: 'Lowest Day', value: Math.min(...costTrend.filter(d => d.amount > 0).map(d => d.amount)), trend: null },
           ].map((metric, i) => (

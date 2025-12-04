@@ -279,6 +279,7 @@ export function generateCostTrend(tenantId: string | 'all', daysToShow: number =
   const tenantSeed = tenantId === 'all' ? 42 : parseInt(tenantId.replace('tenant-', ''), 10) * 17;
 
   // Generate days with realistic patterns (use daysToShow instead of hardcoded 30)
+  // Use actual date as seed to ensure same calendar day = same value across different ranges
   let previousAmount = previousDailyAverage;
 
   for (let i = daysToShow - 1; i >= 0; i--) {
@@ -287,39 +288,42 @@ export function generateCostTrend(tenantId: string | 'all', daysToShow: number =
 
     const dayOfWeek = date.getDay();
     const dayOfMonth = date.getDate();
+    const monthOfYear = date.getMonth();
+
+    // Use date-based seed for consistency: same calendar day = same random factors
+    const dateSeed = tenantSeed + dayOfMonth * 31 + monthOfYear * 367 + date.getFullYear();
 
     // Weekend factor: reduced spending on weekends (varying by day)
     let weekendFactor = 1;
-    if (dayOfWeek === 0) weekendFactor = 0.72 + seededRandom(tenantSeed + i * 3) * 0.1; // Sunday: 72-82%
-    else if (dayOfWeek === 6) weekendFactor = 0.78 + seededRandom(tenantSeed + i * 5) * 0.1; // Saturday: 78-88%
+    if (dayOfWeek === 0) weekendFactor = 0.72 + seededRandom(dateSeed * 3) * 0.1; // Sunday: 72-82%
+    else if (dayOfWeek === 6) weekendFactor = 0.78 + seededRandom(dateSeed * 5) * 0.1; // Saturday: 78-88%
 
     // Day-of-week patterns (busier mid-week)
     const weekdayFactors = [0.75, 0.95, 1.05, 1.12, 1.08, 0.98, 0.82]; // Sun-Sat
     const weekdayFactor = weekdayFactors[dayOfWeek];
 
-    // Gradual trend from previous period to current
-    const progress = (daysToShow - i) / daysToShow;
-    const trendBase = previousDailyAverage + (dailyAverage - previousDailyAverage) * progress;
+    // Use daily average directly - no artificial trend progression
+    const trendBase = dailyAverage;
 
-    // Natural variation using seeded random (±8-15% depending on day)
-    const randomVariation = (seededRandom(tenantSeed + i * 7 + dayOfMonth) - 0.5) * 0.18;
+    // Natural variation using seeded random based on actual date (±8-15%)
+    const randomVariation = (seededRandom(dateSeed * 7) - 0.5) * 0.18;
 
     // Occasional spikes (batch jobs, deployments) - about 1 in 8 days
     let spikeFactor = 1;
-    if (seededRandom(tenantSeed + i * 11) > 0.875) {
-      spikeFactor = 1.15 + seededRandom(tenantSeed + i * 13) * 0.2; // 15-35% spike
+    if (seededRandom(dateSeed * 11) > 0.875) {
+      spikeFactor = 1.15 + seededRandom(dateSeed * 13) * 0.2; // 15-35% spike
     }
 
     // Occasional dips (maintenance windows, outages) - about 1 in 12 days
-    if (seededRandom(tenantSeed + i * 17) > 0.917) {
-      spikeFactor = 0.7 + seededRandom(tenantSeed + i * 19) * 0.15; // 70-85% of normal
+    if (seededRandom(dateSeed * 17) > 0.917) {
+      spikeFactor = 0.7 + seededRandom(dateSeed * 19) * 0.15; // 70-85% of normal
     }
 
     // Month-end processing bump (last 3 days)
-    const monthEndFactor = dayOfMonth >= 28 ? 1.08 + seededRandom(tenantSeed + i) * 0.07 : 1;
+    const monthEndFactor = dayOfMonth >= 28 ? 1.08 + seededRandom(dateSeed) * 0.07 : 1;
 
     // Start of month dip (first 2 days - less batch processing)
-    const monthStartFactor = dayOfMonth <= 2 ? 0.88 + seededRandom(tenantSeed + i * 23) * 0.08 : 1;
+    const monthStartFactor = dayOfMonth <= 2 ? 0.88 + seededRandom(dateSeed * 23) * 0.08 : 1;
 
     // Combine all factors
     let amount = trendBase * (1 + randomVariation) * weekdayFactor * spikeFactor * monthEndFactor * monthStartFactor;
@@ -331,8 +335,8 @@ export function generateCostTrend(tenantId: string | 'all', daysToShow: number =
 
     // Smooth out extreme values - don't let it deviate more than 25% from previous day
     const maxChange = previousAmount * 0.25;
-    if (Math.abs(amount - previousAmount) > maxChange && i < 29) {
-      amount = previousAmount + Math.sign(amount - previousAmount) * maxChange * (0.6 + seededRandom(tenantSeed + i * 29) * 0.4);
+    if (Math.abs(amount - previousAmount) > maxChange && i < daysToShow - 1) {
+      amount = previousAmount + Math.sign(amount - previousAmount) * maxChange * (0.6 + seededRandom(dateSeed * 29) * 0.4);
     }
 
     previousAmount = amount;
@@ -344,7 +348,6 @@ export function generateCostTrend(tenantId: string | 'all', daysToShow: number =
   }
 
   // Add forecast for next 7 days with similar realistic patterns
-  const lastAmount = data[data.length - 1].amount;
   const avgRecentAmount = data.slice(-7).reduce((sum, d) => sum + d.amount, 0) / 7;
 
   for (let i = 1; i <= 7; i++) {
@@ -352,6 +355,11 @@ export function generateCostTrend(tenantId: string | 'all', daysToShow: number =
     date.setDate(date.getDate() + i);
 
     const dayOfWeek = date.getDay();
+    const dayOfMonth = date.getDate();
+    const monthOfYear = date.getMonth();
+
+    // Use date-based seed for forecast consistency
+    const dateSeed = tenantSeed + dayOfMonth * 31 + monthOfYear * 367 + date.getFullYear() + 1000;
 
     // Weekend reduction
     let weekendFactor = 1;
@@ -361,8 +369,8 @@ export function generateCostTrend(tenantId: string | 'all', daysToShow: number =
     // Slight upward trend in forecast
     const trendFactor = 1 + (i * 0.003); // ~0.3% daily growth
 
-    // Natural variation
-    const randomVariation = (seededRandom(tenantSeed + i * 31 + 100) - 0.5) * 0.12;
+    // Natural variation using date-based seed
+    const randomVariation = (seededRandom(dateSeed * 31) - 0.5) * 0.12;
 
     let forecast = avgRecentAmount * trendFactor * (1 + randomVariation);
 
@@ -380,12 +388,16 @@ export function generateCostTrend(tenantId: string | 'all', daysToShow: number =
   return data;
 }
 
-// Service breakdown data - sums to total monthly spend
-export function generateServiceBreakdown(tenantId: string | 'all'): ServiceBreakdown[] {
+// Service breakdown data - sums to total spend for the period
+// daysInPeriod scales the costs proportionally (default 30 = monthly)
+export function generateServiceBreakdown(tenantId: string | 'all', daysInPeriod: number = 30): ServiceBreakdown[] {
   const services: HuaweiService[] = [
     'ECS', 'RDS', 'OBS', 'EVS', 'ELB', 'VPC', 'CDN', 'NAT', 'WAF', 'DCS',
     'DDS', 'GaussDB', 'FunctionGraph', 'APIG', 'SMN', 'CTS', 'CCE', 'SWR',
   ];
+
+  // Scale factor based on days (monthly data is base)
+  const scaleFactor = daysInPeriod / 30;
 
   let breakdown: ServiceBreakdown[];
 
@@ -400,7 +412,7 @@ export function generateServiceBreakdown(tenantId: string | 'all'): ServiceBreak
     });
 
     mockTenants.forEach(tenant => {
-      const spend = tenantMonthlySpend[tenant.id];
+      const spend = tenantMonthlySpend[tenant.id] * scaleFactor;
       const allocation = tenantServiceAllocation[tenant.id];
       const resourceCount = tenantResourceCounts[tenant.id];
 
@@ -428,7 +440,7 @@ export function generateServiceBreakdown(tenantId: string | 'all'): ServiceBreak
     });
   } else {
     // Single tenant
-    const spend = tenantMonthlySpend[tenantId] || 150000;
+    const spend = (tenantMonthlySpend[tenantId] || 150000) * scaleFactor;
     const allocation = tenantServiceAllocation[tenantId] || tenantServiceAllocation['tenant-1'];
     const resourceCount = tenantResourceCounts[tenantId] || 80;
 
@@ -452,12 +464,16 @@ export function generateServiceBreakdown(tenantId: string | 'all'): ServiceBreak
   return breakdown.filter(b => b.cost > 0).sort((a, b) => b.cost - a.cost);
 }
 
-// Region breakdown data - sums to total monthly spend
-export function generateRegionBreakdown(tenantId: string | 'all'): RegionBreakdown[] {
+// Region breakdown data - sums to total spend for the period
+// daysInPeriod scales the costs proportionally (default 30 = monthly)
+export function generateRegionBreakdown(tenantId: string | 'all', daysInPeriod: number = 30): RegionBreakdown[] {
   const regions: HuaweiRegion[] = [
     'af-south-1', 'eu-west-0', 'ap-southeast-1', 'ap-southeast-2', 'ap-southeast-3',
     'cn-north-4', 'cn-east-3', 'la-south-2', 'me-east-1', 'na-mexico-1',
   ];
+
+  // Scale factor based on days (monthly data is base)
+  const scaleFactor = daysInPeriod / 30;
 
   let breakdown: RegionBreakdown[];
 
@@ -471,7 +487,7 @@ export function generateRegionBreakdown(tenantId: string | 'all'): RegionBreakdo
     });
 
     mockTenants.forEach(tenant => {
-      const spend = tenantMonthlySpend[tenant.id];
+      const spend = tenantMonthlySpend[tenant.id] * scaleFactor;
       const allocation = tenantRegionAllocation[tenant.id];
       const resourceCount = tenantResourceCounts[tenant.id];
 
@@ -491,7 +507,7 @@ export function generateRegionBreakdown(tenantId: string | 'all'): RegionBreakdo
       resourceCount: regionResources[region],
     }));
   } else {
-    const spend = tenantMonthlySpend[tenantId] || 150000;
+    const spend = (tenantMonthlySpend[tenantId] || 150000) * scaleFactor;
     const allocation = tenantRegionAllocation[tenantId] || tenantRegionAllocation['tenant-1'];
     const resourceCount = tenantResourceCounts[tenantId] || 80;
 
