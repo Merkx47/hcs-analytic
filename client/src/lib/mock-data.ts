@@ -240,8 +240,27 @@ function seededRandom(seed: number): number {
   return x - Math.floor(x);
 }
 
-// Generate cost trend data (last 30 days + 7 days forecast)
-export function generateCostTrend(tenantId: string | 'all'): CostTrendPoint[] {
+// Helper to get days from date range preset
+export function getDaysFromPreset(preset: string): number {
+  switch (preset) {
+    case 'last7days': return 7;
+    case 'last30days': return 30;
+    case 'last90days': return 90;
+    case 'thisMonth': {
+      const today = new Date();
+      return today.getDate(); // Days elapsed this month
+    }
+    case 'lastMonth': {
+      const today = new Date();
+      const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+      return lastMonth.getDate(); // Days in last month
+    }
+    default: return 30;
+  }
+}
+
+// Generate cost trend data (configurable days + 7 days forecast)
+export function generateCostTrend(tenantId: string | 'all', daysToShow: number = 30): CostTrendPoint[] {
   const data: CostTrendPoint[] = [];
   const today = new Date();
 
@@ -259,10 +278,10 @@ export function generateCostTrend(tenantId: string | 'all'): CostTrendPoint[] {
   // Tenant-based seed for consistent but varied data per tenant
   const tenantSeed = tenantId === 'all' ? 42 : parseInt(tenantId.replace('tenant-', ''), 10) * 17;
 
-  // Generate last 30 days with realistic patterns
+  // Generate days with realistic patterns (use daysToShow instead of hardcoded 30)
   let previousAmount = previousDailyAverage;
 
-  for (let i = 29; i >= 0; i--) {
+  for (let i = daysToShow - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
 
@@ -278,8 +297,8 @@ export function generateCostTrend(tenantId: string | 'all'): CostTrendPoint[] {
     const weekdayFactors = [0.75, 0.95, 1.05, 1.12, 1.08, 0.98, 0.82]; // Sun-Sat
     const weekdayFactor = weekdayFactors[dayOfWeek];
 
-    // Gradual trend from previous month to current
-    const progress = (30 - i) / 30;
+    // Gradual trend from previous period to current
+    const progress = (daysToShow - i) / daysToShow;
     const trendBase = previousDailyAverage + (dailyAverage - previousDailyAverage) * progress;
 
     // Natural variation using seeded random (±8-15% depending on day)
@@ -492,16 +511,25 @@ export function generateRegionBreakdown(tenantId: string | 'all'): RegionBreakdo
 
 // Generate KPIs - all numbers are consistent and verifiable
 // Utilization stats are calculated from actual resource data
-export function generateKPIs(tenantId: string | 'all'): DashboardKPIs {
+// daysInPeriod scales the spend proportionally (default 30 = monthly)
+export function generateKPIs(tenantId: string | 'all', daysInPeriod: number = 30): DashboardKPIs {
   const isAll = tenantId === 'all';
 
-  const totalSpend = isAll
+  // Scale factor based on days (monthly data is base)
+  const scaleFactor = daysInPeriod / 30;
+
+  const monthlySpend = isAll
     ? TOTAL_ALL_SPEND
     : tenantMonthlySpend[tenantId] || 150000;
 
-  const previousSpend = isAll
+  // Scale spend based on date range
+  const totalSpend = monthlySpend * scaleFactor;
+
+  const monthlyPreviousSpend = isAll
     ? Object.values(tenantPreviousSpend).reduce((a, b) => a + b, 0)
     : tenantPreviousSpend[tenantId] || 140000;
+
+  const previousSpend = monthlyPreviousSpend * scaleFactor;
 
   const spendGrowthRate = ((totalSpend - previousSpend) / previousSpend) * 100;
 
@@ -509,7 +537,8 @@ export function generateKPIs(tenantId: string | 'all'): DashboardKPIs {
     ? mockTenants.reduce((sum, t) => sum + t.budget, 0)
     : mockTenants.find(t => t.id === tenantId)?.budget || 200000;
 
-  const budgetUsed = (totalSpend / totalBudget) * 100;
+  // Budget usage is based on monthly budget, but scaled spend
+  const budgetUsed = (totalSpend / (totalBudget * scaleFactor)) * 100;
 
   const activeResources = isAll
     ? TOTAL_RESOURCES

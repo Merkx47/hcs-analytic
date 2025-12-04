@@ -1,5 +1,5 @@
 import { useFinOpsStore, formatCompactCurrency } from '@/lib/finops-store';
-import { mockTenants, generateKPIs } from '@/lib/mock-data';
+import { mockTenants, generateKPIs, getDaysFromPreset } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -114,7 +114,9 @@ export function Header() {
     return mockTenants.find(t => t.id === selectedTenantId);
   }, [selectedTenantId]);
 
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+  const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+
+  const kpis = useMemo(() => generateKPIs(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
 
   const handleDateRangeChange = (preset: DateRangePreset) => {
     const today = new Date();
@@ -210,7 +212,7 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
-            <span className="text-xs text-muted-foreground">MTD Spend:</span>
+            <span className="text-xs text-muted-foreground">{daysInPeriod}D Spend:</span>
             <span className="text-sm font-mono font-semibold text-foreground">
               {formatCompactCurrency(kpis.totalSpend, currency)}
             </span>

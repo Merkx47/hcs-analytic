@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateKPIs } from '@/lib/mock-data';
+import { generateKPIs, getDaysFromPreset } from '@/lib/mock-data';
 import {
   TrendingUp,
   TrendingDown,
@@ -92,17 +92,31 @@ function KPICard({
 }
 
 export function KPICards() {
-  const { currency, selectedTenantId } = useFinOpsStore();
-  
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+  const { currency, selectedTenantId, dateRange } = useFinOpsStore();
+
+  const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+
+  const kpis = useMemo(() => generateKPIs(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
+
+  // Get a label for the time period
+  const periodLabel = useMemo(() => {
+    switch (dateRange.preset) {
+      case 'last7days': return 'Last 7 Days';
+      case 'last30days': return 'Last 30 Days';
+      case 'last90days': return 'Last 90 Days';
+      case 'thisMonth': return 'This Month';
+      case 'lastMonth': return 'Last Month';
+      default: return 'Selected Period';
+    }
+  }, [dateRange.preset]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="kpi-cards-grid">
       <KPICard
-        title="Total Spend (MTD)"
+        title={`Total Spend (${periodLabel})`}
         value={formatCurrency(kpis.totalSpend, currency)}
         trend={kpis.spendGrowthRate}
-        trendLabel="vs last month"
+        trendLabel="vs previous period"
         icon={Wallet}
         iconColor="text-primary"
         delay={0}
@@ -136,9 +150,11 @@ export function KPICards() {
 }
 
 export function SecondaryKPIs() {
-  const { currency, selectedTenantId } = useFinOpsStore();
-  
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+  const { currency, selectedTenantId, dateRange } = useFinOpsStore();
+
+  const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+
+  const kpis = useMemo(() => generateKPIs(selectedTenantId, daysInPeriod), [selectedTenantId, daysInPeriod]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

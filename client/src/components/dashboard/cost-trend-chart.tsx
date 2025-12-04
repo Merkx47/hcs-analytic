@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore, formatCompactCurrency } from '@/lib/finops-store';
-import { generateCostTrend } from '@/lib/mock-data';
+import { generateCostTrend, getDaysFromPreset } from '@/lib/mock-data';
 import { useMemo } from 'react';
 import {
   AreaChart,
@@ -17,10 +17,12 @@ import { Download, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function CostTrendChart() {
-  const { currency, selectedTenantId } = useFinOpsStore();
-  
-  const costTrend = useMemo(() => generateCostTrend(selectedTenantId), [selectedTenantId]);
-  
+  const { currency, selectedTenantId, dateRange } = useFinOpsStore();
+
+  const daysToShow = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+
+  const costTrend = useMemo(() => generateCostTrend(selectedTenantId, daysToShow), [selectedTenantId, daysToShow]);
+
   const today = new Date().toISOString().split('T')[0];
   const totalActual = costTrend
     .filter(d => d.amount > 0)
@@ -68,7 +70,7 @@ export function CostTrendChart() {
               Cost Trend
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Last 30 days with 7-day forecast
+              Last {daysToShow} days with 7-day forecast
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -158,12 +160,12 @@ export function CostTrendChart() {
           </div>
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
             <div>
-              <p className="text-xs text-muted-foreground">30-Day Total</p>
+              <p className="text-xs text-muted-foreground">{daysToShow}-Day Total</p>
               <p className="text-xl font-bold font-mono">{formatCompactCurrency(totalActual, currency)}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Daily Average</p>
-              <p className="text-xl font-bold font-mono">{formatCompactCurrency(totalActual / 30, currency)}</p>
+              <p className="text-xl font-bold font-mono">{formatCompactCurrency(totalActual / daysToShow, currency)}</p>
             </div>
           </div>
         </CardContent>
