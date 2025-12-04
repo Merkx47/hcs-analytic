@@ -396,31 +396,33 @@ export default function Budgets() {
                     className="p-4 rounded-lg border border-border bg-background/50 group"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <h3 className="font-medium">{budget.name}</h3>
                         <p className="text-xs text-muted-foreground">
                           {budget.tenantName} • {budget.period.charAt(0).toUpperCase() + budget.period.slice(1)} Budget
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {budget.percentage >= 100 ? (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Over Budget
-                          </Badge>
-                        ) : budget.percentage >= budget.alertThreshold ? (
-                          <Badge className="text-xs bg-amber-500/10 text-amber-500">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            At Risk
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-500">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            On Track
-                          </Badge>
-                        )}
-                        {!('isDefault' in budget) && (
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="w-24 flex justify-end">
+                          {budget.percentage >= 100 ? (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Over Budget
+                            </Badge>
+                          ) : budget.percentage >= budget.alertThreshold ? (
+                            <Badge className="text-xs bg-amber-500/10 text-amber-500">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              At Risk
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-500">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              On Track
+                            </Badge>
+                          )}
+                        </div>
+                        {!('isDefault' in budget) ? (
+                          <div className="flex items-center gap-1 w-20 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -458,6 +460,8 @@ export default function Budgets() {
                               </AlertDialogContent>
                             </AlertDialog>
                           </div>
+                        ) : (
+                          <div className="w-20" />
                         )}
                       </div>
                     </div>

@@ -20,7 +20,9 @@
       "Bash(gh auth:*)",
       "Bash(cmd.exe /c \"gh auth status\")",
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\Users\\Emeka\\Documents\\zip_project.ps1\")"
     ],
     "deny": [],
     "ask": []
