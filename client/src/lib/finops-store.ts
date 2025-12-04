@@ -49,13 +49,15 @@ export const useFinOpsStore = create<FinOpsStore>((set) => ({
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
 }));
 
-// Currency conversion utility
+// Currency conversion utility (rates relative to USD)
 export function convertCurrency(amount: number, toCurrency: Currency): number {
   const rates: Record<Currency, number> = {
     USD: 1,
     GBP: 0.79,
     EUR: 0.92,
     JPY: 149.50,
+    CNY: 7.24,
+    NGN: 1550.00,
   };
   return amount * rates[toCurrency];
 }
@@ -66,17 +68,20 @@ export function formatCurrency(amount: number, currency: Currency): string {
     GBP: '£',
     EUR: '€',
     JPY: '¥',
+    CNY: '¥',
+    NGN: '₦',
   };
-  
+
   const converted = convertCurrency(amount, currency);
-  
-  if (currency === 'JPY') {
+
+  // For JPY and NGN, no decimal places needed
+  if (currency === 'JPY' || currency === 'NGN') {
     return `${symbols[currency]}${Math.round(converted).toLocaleString()}`;
   }
-  
-  return `${symbols[currency]}${converted.toLocaleString(undefined, { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
+
+  return `${symbols[currency]}${converted.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   })}`;
 }
 
@@ -86,20 +91,23 @@ export function formatCompactCurrency(amount: number, currency: Currency): strin
     GBP: '£',
     EUR: '€',
     JPY: '¥',
+    CNY: '¥',
+    NGN: '₦',
   };
-  
+
   const converted = convertCurrency(amount, currency);
-  
+
   if (converted >= 1000000) {
     return `${symbols[currency]}${(converted / 1000000).toFixed(1)}M`;
   }
   if (converted >= 1000) {
     return `${symbols[currency]}${(converted / 1000).toFixed(1)}K`;
   }
-  
-  if (currency === 'JPY') {
+
+  // For JPY and NGN, no decimal places needed
+  if (currency === 'JPY' || currency === 'NGN') {
     return `${symbols[currency]}${Math.round(converted).toLocaleString()}`;
   }
-  
+
   return `${symbols[currency]}${converted.toFixed(2)}`;
 }

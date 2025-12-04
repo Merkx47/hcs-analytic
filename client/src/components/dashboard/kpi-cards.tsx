@@ -2,11 +2,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateKPIs } from '@/lib/mock-data';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Server, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Server,
   Lightbulb,
   Target,
   Zap,
@@ -103,7 +103,7 @@ export function KPICards() {
         value={formatCurrency(kpis.totalSpend, currency)}
         trend={kpis.spendGrowthRate}
         trendLabel="vs last month"
-        icon={DollarSign}
+        icon={Wallet}
         iconColor="text-primary"
         delay={0}
       />

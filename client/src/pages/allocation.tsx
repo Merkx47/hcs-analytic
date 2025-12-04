@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateServiceBreakdown, generateTenantSummaries, mockTenants } from '@/lib/mock-data';
+import { generateServiceBreakdown, generateTenantSummaries, generateRegionBreakdown } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
 import { useMemo } from 'react';
 import {
@@ -9,13 +9,14 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { 
-  Wallet,
+import {
   Layers,
   Users,
+  Globe,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTheme } from 'next-themes';
 
 const COLORS = [
   '#E53935', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA',
@@ -24,7 +25,9 @@ const COLORS = [
 
 export default function Allocation() {
   const { currency, selectedTenantId } = useFinOpsStore();
-  
+  const { resolvedTheme } = useTheme();
+  const textColor = resolvedTheme === 'dark' ? 'white' : 'black';
+
   const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
   const tenantSummaries = useMemo(() => generateTenantSummaries(), []);
 
@@ -91,7 +94,7 @@ export default function Allocation() {
                       stroke="hsl(var(--background))"
                       fill="#8884d8"
                       content={({ x, y, width, height, name, fill }: any) => {
-                        if (width < 50 || height < 30) return null;
+                        const showText = name && width >= 50 && height >= 30;
                         return (
                           <g>
                             <rect
@@ -104,16 +107,21 @@ export default function Allocation() {
                               strokeWidth={2}
                               rx={4}
                             />
-                            <text
-                              x={x + width / 2}
-                              y={y + height / 2}
-                              textAnchor="middle"
-                              fill="white"
-                              fontSize={12}
-                              fontWeight={600}
-                            >
-                              {name}
-                            </text>
+                            {showText && (
+                              <text
+                                x={x + width / 2}
+                                y={y + height / 2}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fill={textColor}
+                                stroke="none"
+                                fontSize={12}
+                                fontWeight={500}
+                                fontFamily="system-ui, -apple-system, sans-serif"
+                              >
+                                {name}
+                              </text>
+                            )}
                           </g>
                         );
                       }}
@@ -164,8 +172,8 @@ export default function Allocation() {
                         stroke="hsl(var(--background))"
                         fill="#8884d8"
                         content={({ x, y, width, height, name, fill }: any) => {
-                          if (width < 60 || height < 35) return null;
-                          const displayName = name.length > 12 ? name.slice(0, 10) + '...' : name;
+                          const showText = name && width >= 60 && height >= 35;
+                          const displayName = name && name.length > 12 ? name.slice(0, 10) + '...' : name;
                           return (
                             <g>
                               <rect
@@ -178,16 +186,21 @@ export default function Allocation() {
                                 strokeWidth={2}
                                 rx={4}
                               />
-                              <text
-                                x={x + width / 2}
-                                y={y + height / 2}
-                                textAnchor="middle"
-                                fill="white"
-                                fontSize={11}
-                                fontWeight={600}
-                              >
-                                {displayName}
-                              </text>
+                              {showText && (
+                                <text
+                                  x={x + width / 2}
+                                  y={y + height / 2}
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                  fill={textColor}
+                                  stroke="none"
+                                  fontSize={12}
+                                  fontWeight={500}
+                                  fontFamily="system-ui, -apple-system, sans-serif"
+                                >
+                                  {displayName}
+                                </text>
+                              )}
                             </g>
                           );
                         }}

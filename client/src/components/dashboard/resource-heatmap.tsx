@@ -42,7 +42,8 @@ export function ResourceHeatmap() {
   
   const avgCpu = resources.reduce((sum, r) => sum + r.cpuUtilization, 0) / resources.length;
   const avgMemory = resources.reduce((sum, r) => sum + r.memoryUtilization, 0) / resources.length;
-  const underutilized = resources.filter(r => r.cpuUtilization < 20 && r.memoryUtilization < 20).length;
+  // Count underutilized as CPU < 30% (consistent with KPI calculation)
+  const underutilized = resources.filter(r => r.cpuUtilization < 30).length;
 
   return (
     <motion.div

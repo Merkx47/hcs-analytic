@@ -21,13 +21,15 @@ export type User = typeof users.$inferSelect;
 // ==================== FINOPS TYPES ====================
 
 // Currency types
-export type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY';
+export type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY' | 'CNY' | 'NGN';
 
 export const currencyInfo: Record<Currency, { symbol: string; name: string; flag: string; rate: number }> = {
   USD: { symbol: '$', name: 'US Dollar', flag: '🇺🇸', rate: 1 },
   GBP: { symbol: '£', name: 'British Pound', flag: '🇬🇧', rate: 0.79 },
   EUR: { symbol: '€', name: 'Euro', flag: '🇪🇺', rate: 0.92 },
   JPY: { symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵', rate: 149.50 },
+  CNY: { symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳', rate: 7.24 },
+  NGN: { symbol: '₦', name: 'Nigerian Naira', flag: '🇳🇬', rate: 1550.00 },
 };
 
 // Huawei Cloud Regions
@@ -189,6 +191,10 @@ export interface DashboardKPIs {
   potentialSavings: number;
   averageEfficiency: number;
   costPerResource: number;
+  // Resource utilization stats
+  avgCpuUtilization?: number;
+  avgMemoryUtilization?: number;
+  underutilizedResources?: number;
 }
 
 // Cost trend data point

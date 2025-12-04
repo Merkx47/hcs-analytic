@@ -22,7 +22,7 @@ import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
 import { generateResources } from '@/lib/mock-data';
 import { serviceInfo, regionNames, type HuaweiService } from '@shared/schema';
 import { useMemo, useState } from 'react';
-import { 
+import {
   Server,
   Search,
   Filter,
@@ -35,10 +35,16 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+const ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
 
 const getUtilizationBadge = (value: number) => {
   if (value < 20) return { label: 'Low', color: 'text-destructive bg-destructive/10' };
@@ -53,9 +59,11 @@ export default function Resources() {
   const [searchQuery, setSearchQuery] = useState('');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+
   const resources = useMemo(() => generateResources(selectedTenantId), [selectedTenantId]);
-  
+
   const filteredResources = useMemo(() => {
     return resources.filter(r => {
       const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -64,6 +72,21 @@ export default function Resources() {
       return matchesSearch && matchesService && matchesStatus;
     });
   }, [resources, searchQuery, serviceFilter, statusFilter]);
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery, serviceFilter, statusFilter, selectedTenantId]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredResources.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedResources = filteredResources.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
 
   const stats = useMemo(() => {
     const running = resources.filter(r => r.status === 'running').length;
@@ -197,12 +220,12 @@ export default function Resources() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredResources.slice(0, 20).map((resource, index) => {
+                    {paginatedResources.map((resource, index) => {
                       const cpuBadge = getUtilizationBadge(resource.cpuUtilization);
                       const memBadge = getUtilizationBadge(resource.memoryUtilization);
-                      
+
                       return (
-                        <TableRow 
+                        <TableRow
                           key={resource.id}
                           className="hover-elevate cursor-pointer"
                           data-testid={`resource-row-${resource.id}`}
@@ -214,10 +237,10 @@ export default function Resources() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge 
+                            <Badge
                               variant="secondary"
                               className="text-xs"
-                              style={{ 
+                              style={{
                                 backgroundColor: `${serviceInfo[resource.service]?.color}20`,
                                 color: serviceInfo[resource.service]?.color,
                               }}
@@ -273,13 +296,99 @@ export default function Resources() {
                   </TableBody>
                 </Table>
               </div>
-              {filteredResources.length > 20 && (
-                <div className="p-4 text-center border-t border-border">
-                  <Button variant="ghost" size="sm">
-                    Load more ({filteredResources.length - 20} remaining)
+
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span>
+                    Showing {startIndex + 1}-{Math.min(endIndex, filteredResources.length)} of {filteredResources.length}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span>Rows per page:</span>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={(value) => {
+                        setItemsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-[70px] h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ITEMS_PER_PAGE_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option.toString()}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => goToPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-1 mx-2">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => goToPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => goToPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
                   </Button>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </motion.div>

@@ -12,20 +12,72 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFinOpsStore } from '@/lib/finops-store';
+import { useDataStore } from '@/lib/data-store';
 import type { Currency } from '@shared/schema';
-import { 
+import { useState } from 'react';
+import {
   Settings as SettingsIcon,
   User,
   Bell,
   Shield,
   Key,
   Globe,
+  Loader2,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 export default function Settings() {
   const { currency, setCurrency } = useFinOpsStore();
+  const {
+    settings,
+    updateProfile,
+    updateTimezone,
+    updateNotifications,
+    connectApi,
+    disconnectApi,
+    updateSecurity,
+    changePassword,
+  } = useDataStore();
+
+  // Form states
+  const [profileForm, setProfileForm] = useState({
+    firstName: settings.profile.firstName,
+    lastName: settings.profile.lastName,
+    email: settings.profile.email,
+  });
+
+  const [apiForm, setApiForm] = useState({
+    accessKey: settings.apiCredentials.accessKey,
+    secretKey: settings.apiCredentials.secretKey,
+    projectId: settings.apiCredentials.projectId,
+  });
+
+  const [newPassword, setNewPassword] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handleSaveProfile = () => {
+    updateProfile(profileForm);
+  };
+
+  const handleConnectApi = async () => {
+    if (!apiForm.accessKey || !apiForm.secretKey || !apiForm.projectId) return;
+    setIsConnecting(true);
+    await connectApi(apiForm);
+    setIsConnecting(false);
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword) return;
+    setIsChangingPassword(true);
+    await changePassword(newPassword);
+    setNewPassword('');
+    setIsChangingPassword(false);
+  };
 
   return (
     <ScrollArea className="h-full">
@@ -68,18 +120,34 @@ export default function Settings() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" placeholder="Chidi" />
+                      <Input
+                        id="firstName"
+                        value={profileForm.firstName}
+                        onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                        placeholder="Chidi"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Okonkwo" />
+                      <Input
+                        id="lastName"
+                        value={profileForm.lastName}
+                        onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                        placeholder="Okonkwo"
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="chidi@company.com" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      placeholder="chidi@company.com"
+                    />
                   </div>
-                  <Button>Save Changes</Button>
+                  <Button onClick={handleSaveProfile}>Save Changes</Button>
                 </CardContent>
               </Card>
             </motion.div>
@@ -109,12 +177,14 @@ export default function Settings() {
                         <SelectItem value="GBP">GBP - British Pound</SelectItem>
                         <SelectItem value="EUR">EUR - Euro</SelectItem>
                         <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                        <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
+                        <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Timezone</Label>
-                    <Select defaultValue="africa-lagos">
+                    <Select value={settings.timezone} onValueChange={updateTimezone}>
                       <SelectTrigger className="w-[250px]">
                         <SelectValue />
                       </SelectTrigger>
@@ -147,17 +217,23 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {[
-                    { id: 'budget', label: 'Budget Alerts', desc: 'Get notified when spending exceeds thresholds' },
-                    { id: 'anomaly', label: 'Cost Anomalies', desc: 'Alerts for unusual spending patterns' },
-                    { id: 'recommendations', label: 'New Recommendations', desc: 'Updates on new optimization opportunities' },
-                    { id: 'reports', label: 'Report Ready', desc: 'Notification when scheduled reports are ready' },
+                    { id: 'budgetAlerts', label: 'Budget Alerts', desc: 'Get notified when spending exceeds thresholds' },
+                    { id: 'costAnomalies', label: 'Cost Anomalies', desc: 'Alerts for unusual spending patterns' },
+                    { id: 'newRecommendations', label: 'New Recommendations', desc: 'Updates on new optimization opportunities' },
+                    { id: 'reportReady', label: 'Report Ready', desc: 'Notification when scheduled reports are ready' },
                   ].map((item) => (
                     <div key={item.id} className="flex items-center justify-between">
                       <div>
                         <Label htmlFor={item.id} className="font-medium">{item.label}</Label>
                         <p className="text-sm text-muted-foreground">{item.desc}</p>
                       </div>
-                      <Switch id={item.id} defaultChecked />
+                      <Switch
+                        id={item.id}
+                        checked={settings.notifications[item.id as keyof typeof settings.notifications]}
+                        onCheckedChange={(checked) =>
+                          updateNotifications({ [item.id]: checked })
+                        }
+                      />
                     </div>
                   ))}
                 </CardContent>
@@ -180,19 +256,65 @@ export default function Settings() {
                   <CardDescription>Connect to Huawei Cloud for live data</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {settings.apiCredentials.isConnected && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      <span className="text-sm text-emerald-600 dark:text-emerald-400">Connected to Huawei Cloud</span>
+                      <Badge variant="secondary" className="ml-auto bg-emerald-500/10 text-emerald-500">Active</Badge>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="accessKey">Access Key (AK)</Label>
-                    <Input id="accessKey" type="password" placeholder="Enter your access key" />
+                    <Input
+                      id="accessKey"
+                      type="password"
+                      value={apiForm.accessKey}
+                      onChange={(e) => setApiForm({ ...apiForm, accessKey: e.target.value })}
+                      placeholder="Enter your access key"
+                      disabled={settings.apiCredentials.isConnected}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="secretKey">Secret Key (SK)</Label>
-                    <Input id="secretKey" type="password" placeholder="Enter your secret key" />
+                    <Input
+                      id="secretKey"
+                      type="password"
+                      value={apiForm.secretKey}
+                      onChange={(e) => setApiForm({ ...apiForm, secretKey: e.target.value })}
+                      placeholder="Enter your secret key"
+                      disabled={settings.apiCredentials.isConnected}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="projectId">Project ID</Label>
-                    <Input id="projectId" placeholder="Enter your project ID" />
+                    <Input
+                      id="projectId"
+                      value={apiForm.projectId}
+                      onChange={(e) => setApiForm({ ...apiForm, projectId: e.target.value })}
+                      placeholder="Enter your project ID"
+                      disabled={settings.apiCredentials.isConnected}
+                    />
                   </div>
-                  <Button>Connect to Huawei Cloud</Button>
+                  {settings.apiCredentials.isConnected ? (
+                    <Button variant="destructive" onClick={disconnectApi}>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleConnectApi}
+                      disabled={isConnecting || !apiForm.accessKey || !apiForm.secretKey || !apiForm.projectId}
+                    >
+                      {isConnecting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        'Connect to Huawei Cloud'
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -218,13 +340,34 @@ export default function Settings() {
                       <Label className="font-medium">Two-Factor Authentication</Label>
                       <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={settings.security.twoFactorEnabled}
+                      onCheckedChange={(checked) => updateSecurity({ twoFactorEnabled: checked })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Change Password</Label>
                     <div className="flex gap-2">
-                      <Input type="password" placeholder="New password" />
-                      <Button variant="outline">Update</Button>
+                      <Input
+                        type="password"
+                        placeholder="New password (min 8 characters)"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={handleChangePassword}
+                        disabled={isChangingPassword || !newPassword}
+                      >
+                        {isChangingPassword ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          'Update'
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

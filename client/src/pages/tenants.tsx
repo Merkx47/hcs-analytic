@@ -2,12 +2,41 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateTenantSummaries, mockTenants } from '@/lib/mock-data';
+import { useDataStore } from '@/lib/data-store';
+import { generateTenantSummaries } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
 import { useMemo, useState } from 'react';
-import { 
+import {
   Users,
   Search,
   Building2,
@@ -19,19 +48,54 @@ import {
   Globe,
   BarChart3,
   Target,
+  Pencil,
+  Trash2,
+  Plus,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useLocation } from 'wouter';
+
+const industries = ['Manufacturing', 'Telecommunications', 'Fintech', 'Banking', 'Technology', 'E-commerce', 'Healthcare', 'Education'];
+const countries = ['Nigeria', 'Kenya', 'South Africa', 'Ghana', 'Egypt', 'Morocco', 'Tanzania', 'Uganda'];
 
 export default function Tenants() {
   const { currency, setSelectedTenantId } = useFinOpsStore();
+  const { tenants, addTenant, updateTenant, deleteTenant } = useDataStore();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const summaries = useMemo(() => generateTenantSummaries(), []);
-  
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTenant, setEditingTenant] = useState<typeof tenants[0] | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    industry: '',
+    country: '',
+    contactName: '',
+    contactEmail: '',
+    budget: '',
+  });
+
+  const summaries = useMemo(() => {
+    // Generate summaries based on current tenants
+    return tenants.map(tenant => {
+      const baseSpend = tenant.budget * (0.4 + Math.random() * 0.5);
+      return {
+        tenant,
+        totalSpend: baseSpend,
+        budgetUsage: (baseSpend / tenant.budget) * 100,
+        efficiencyScore: tenant.efficiencyScore,
+        topService: ['ECS', 'RDS', 'OBS', 'CCE'][Math.floor(Math.random() * 4)] as any,
+        recommendationCount: Math.floor(Math.random() * 10) + 1,
+      };
+    });
+  }, [tenants]);
+
   const filteredTenants = useMemo(() => {
-    return summaries.filter(s => 
+    return summaries.filter(s =>
       s.tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.tenant.industry.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.tenant.country.toLowerCase().includes(searchQuery.toLowerCase())
@@ -46,6 +110,70 @@ export default function Tenants() {
   }, [summaries]);
 
   const maxSpend = Math.max(...summaries.map(s => s.totalSpend));
+
+  const viewTenantDashboard = (tenantId: string) => {
+    setSelectedTenantId(tenantId);
+    setLocation('/');
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      industry: '',
+      country: '',
+      contactName: '',
+      contactEmail: '',
+      budget: '',
+    });
+  };
+
+  const handleAddTenant = () => {
+    if (!formData.name || !formData.industry || !formData.country) return;
+
+    addTenant({
+      name: formData.name,
+      industry: formData.industry,
+      country: formData.country,
+      contactName: formData.contactName,
+      contactEmail: formData.contactEmail,
+      budget: parseFloat(formData.budget) || 100000,
+      efficiencyScore: Math.floor(70 + Math.random() * 25),
+      status: 'active',
+    });
+
+    resetForm();
+    setIsAddDialogOpen(false);
+  };
+
+  const handleEditTenant = () => {
+    if (!editingTenant || !formData.name) return;
+
+    updateTenant(editingTenant.id, {
+      name: formData.name,
+      industry: formData.industry,
+      country: formData.country,
+      contactName: formData.contactName,
+      contactEmail: formData.contactEmail,
+      budget: parseFloat(formData.budget) || editingTenant.budget,
+    });
+
+    resetForm();
+    setIsEditDialogOpen(false);
+    setEditingTenant(null);
+  };
+
+  const openEditDialog = (tenant: typeof tenants[0]) => {
+    setEditingTenant(tenant);
+    setFormData({
+      name: tenant.name,
+      industry: tenant.industry,
+      country: tenant.country,
+      contactName: tenant.contactName,
+      contactEmail: tenant.contactEmail,
+      budget: tenant.budget.toString(),
+    });
+    setIsEditDialogOpen(true);
+  };
 
   return (
     <ScrollArea className="h-full">
@@ -62,15 +190,187 @@ export default function Tenants() {
               Multi-tenant cost analytics and comparison
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Building2 className="h-4 w-4 mr-2" />
-            Add Tenant
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Tenant
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add New Tenant</DialogTitle>
+                <DialogDescription>
+                  Create a new tenant for multi-tenant cost management.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Company Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g., Acme Corporation"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="industry">Industry</Label>
+                    <Select value={formData.industry} onValueChange={(v) => setFormData({ ...formData, industry: v })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select industry" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {industries.map((ind) => (
+                          <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Select value={formData.country} onValueChange={(v) => setFormData({ ...formData, country: v })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country} value={country}>{country}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="contactName">Contact Name</Label>
+                  <Input
+                    id="contactName"
+                    placeholder="e.g., John Doe"
+                    value={formData.contactName}
+                    onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="contactEmail">Contact Email</Label>
+                  <Input
+                    id="contactEmail"
+                    type="email"
+                    placeholder="e.g., john@acme.com"
+                    value={formData.contactEmail}
+                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="budget">Monthly Budget (USD)</Label>
+                  <Input
+                    id="budget"
+                    type="number"
+                    placeholder="e.g., 100000"
+                    value={formData.budget}
+                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { resetForm(); setIsAddDialogOpen(false); }}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddTenant} disabled={!formData.name || !formData.industry || !formData.country}>
+                  Add Tenant
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </motion.div>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Tenant</DialogTitle>
+              <DialogDescription>
+                Update tenant information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Company Name</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-industry">Industry</Label>
+                  <Select value={formData.industry} onValueChange={(v) => setFormData({ ...formData, industry: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {industries.map((ind) => (
+                        <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-country">Country</Label>
+                  <Select value={formData.country} onValueChange={(v) => setFormData({ ...formData, country: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country} value={country}>{country}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-contactName">Contact Name</Label>
+                <Input
+                  id="edit-contactName"
+                  value={formData.contactName}
+                  onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-contactEmail">Contact Email</Label>
+                <Input
+                  id="edit-contactEmail"
+                  type="email"
+                  value={formData.contactEmail}
+                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-budget">Monthly Budget (USD)</Label>
+                <Input
+                  id="edit-budget"
+                  type="number"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { resetForm(); setIsEditDialogOpen(false); setEditingTenant(null); }}>
+                Cancel
+              </Button>
+              <Button onClick={handleEditTenant}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total Tenants', value: mockTenants.length, icon: Users, color: 'text-primary' },
+            { label: 'Total Tenants', value: tenants.length, icon: Users, color: 'text-primary' },
             { label: 'Combined Spend', value: formatCurrency(stats.totalSpend, currency), icon: BarChart3, color: 'text-emerald-500', isValue: true },
             { label: 'Avg Efficiency', value: `${stats.avgEfficiency.toFixed(0)}%`, icon: Zap, color: 'text-amber-500' },
             { label: 'Pending Actions', value: stats.totalRecommendations, icon: Lightbulb, color: 'text-blue-500' },
@@ -93,8 +393,8 @@ export default function Tenants() {
                     </div>
                     <div className={cn(
                       "p-2.5 rounded-xl",
-                      stat.color === 'text-emerald-500' ? 'bg-emerald-500/10' : 
-                      stat.color === 'text-amber-500' ? 'bg-amber-500/10' : 
+                      stat.color === 'text-emerald-500' ? 'bg-emerald-500/10' :
+                      stat.color === 'text-amber-500' ? 'bg-amber-500/10' :
                       stat.color === 'text-blue-500' ? 'bg-blue-500/10' : 'bg-primary/10'
                     )}>
                       <stat.icon className={cn("h-6 w-6", stat.color)} />
@@ -140,13 +440,12 @@ export default function Tenants() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.05 * index }}
                   >
-                    <div 
-                      className="p-4 rounded-xl border border-border bg-background/50 hover-elevate cursor-pointer"
-                      onClick={() => setSelectedTenantId(summary.tenant.id)}
+                    <div
+                      className="p-4 rounded-xl border border-border bg-background/50 hover-elevate cursor-pointer group"
                       data-testid={`tenant-card-${summary.tenant.id}`}
                     >
                       <div className="flex items-start justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3" onClick={() => viewTenantDashboard(summary.tenant.id)}>
                           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
                             <Building2 className="h-6 w-6 text-primary" />
                           </div>
@@ -162,25 +461,55 @@ export default function Tenants() {
                             </div>
                           </div>
                         </div>
-                        <Badge 
-                          variant={summary.tenant.status === 'active' ? 'secondary' : 'outline'}
-                          className={cn(
-                            "text-xs capitalize",
-                            summary.tenant.status === 'active' && "bg-emerald-500/10 text-emerald-500"
-                          )}
-                        >
-                          {summary.tenant.status}
-                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); openEditDialog(summary.tenant); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Tenant</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete {summary.tenant.name}? This action cannot be undone and will remove all associated budgets and data.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => deleteTenant(summary.tenant.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
-                      
-                      <div className="space-y-3 mb-4">
+
+                      <div className="space-y-3 mb-4" onClick={() => viewTenantDashboard(summary.tenant.id)}>
                         <div>
                           <div className="flex items-center justify-between text-xs mb-1">
                             <span className="text-muted-foreground">Monthly Spend</span>
                             <span className="font-mono font-medium">{formatCompactCurrency(summary.totalSpend, currency)}</span>
                           </div>
-                          <Progress 
-                            value={(summary.totalSpend / maxSpend) * 100} 
+                          <Progress
+                            value={(summary.totalSpend / maxSpend) * 100}
                             className="h-1.5"
                           />
                         </div>
@@ -193,8 +522,8 @@ export default function Tenants() {
                               summary.budgetUsage > 70 ? "text-amber-500" : "text-emerald-500"
                             )}>{summary.budgetUsage.toFixed(0)}%</span>
                           </div>
-                          <Progress 
-                            value={Math.min(summary.budgetUsage, 100)} 
+                          <Progress
+                            value={Math.min(summary.budgetUsage, 100)}
                             className={cn(
                               "h-1.5",
                               summary.budgetUsage > 90 && "[&>div]:bg-destructive",
@@ -203,9 +532,9 @@ export default function Tenants() {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between pt-3 border-t border-border">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4" onClick={() => viewTenantDashboard(summary.tenant.id)}>
                           <div className="flex items-center gap-1">
                             <Zap className={cn(
                               "h-4 w-4",
@@ -218,10 +547,10 @@ export default function Tenants() {
                             <Lightbulb className="h-4 w-4 text-amber-500" />
                             <span className="text-sm font-mono">{summary.recommendationCount}</span>
                           </div>
-                          <Badge 
-                            variant="secondary" 
+                          <Badge
+                            variant="secondary"
                             className="text-xs"
-                            style={{ 
+                            style={{
                               backgroundColor: `${serviceInfo[summary.topService]?.color}20`,
                               color: serviceInfo[summary.topService]?.color,
                             }}
@@ -229,9 +558,17 @@ export default function Tenants() {
                             {summary.topService}
                           </Badge>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-muted-foreground hover:text-primary"
+                          onClick={() => viewTenantDashboard(summary.tenant.id)}
+                        >
+                          View Dashboard
+                          <ArrowRight className="h-4 w-4 ml-1" />
+                        </Button>
                       </div>
-                      
+
                       <div className="mt-3 pt-3 border-t border-border">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Mail className="h-3 w-3" />
@@ -242,13 +579,13 @@ export default function Tenants() {
                   </motion.div>
                 ))}
               </div>
-              
+
               {filteredTenants.length === 0 && (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Tenants Found</h3>
                   <p className="text-sm text-muted-foreground">
-                    Try adjusting your search query.
+                    Try adjusting your search query or add a new tenant.
                   </p>
                 </div>
               )}
