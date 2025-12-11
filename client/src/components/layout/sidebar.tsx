@@ -11,9 +11,9 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
-  PieChart,
   Target,
   Wallet,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore } from '@/lib/finops-store';
@@ -41,6 +41,7 @@ const secondaryNavItems: NavItem[] = [
 ];
 
 const bottomNavItems: NavItem[] = [
+  { icon: BookOpen, label: 'HCS Guide', href: '/guide' },
   { icon: Settings, label: 'Settings', href: '/settings' },
   { icon: HelpCircle, label: 'Help', href: '/help' },
 ];

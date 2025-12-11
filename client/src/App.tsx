@@ -17,6 +17,8 @@ import Allocation from "@/pages/allocation";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import Help from "@/pages/help";
+import Guide from "@/pages/guide";
+import TenantDetail from "@/pages/tenant-detail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -27,11 +29,13 @@ function Router() {
       <Route path="/resources" component={Resources} />
       <Route path="/recommendations" component={Recommendations} />
       <Route path="/tenants" component={Tenants} />
+      <Route path="/tenant/:id" component={TenantDetail} />
       <Route path="/budgets" component={Budgets} />
       <Route path="/allocation" component={Allocation} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
       <Route path="/help" component={Help} />
+      <Route path="/guide" component={Guide} />
       <Route component={NotFound} />
     </Switch>
   );

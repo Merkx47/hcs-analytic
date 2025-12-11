@@ -3,6 +3,9 @@ import type { Tenant, Recommendation } from '@shared/schema';
 import { mockTenants as initialTenants, generateRecommendations } from './mock-data';
 import { toast } from '@/hooks/use-toast';
 
+// Entity types for HCS hierarchy
+export type EntityType = 'zone' | 'tenant' | 'vdc1' | 'vdc2' | 'vdc3' | 'vdc4' | 'vdc5';
+
 // Budget type
 export interface Budget {
   id: string;
@@ -12,6 +15,10 @@ export interface Budget {
   period: 'monthly' | 'quarterly' | 'yearly';
   alertThreshold: number;
   createdAt: string;
+  // New fields for HCS hierarchy support
+  entityType: EntityType;
+  entityId: string;
+  entityPath: string; // e.g., "Zone A > Dangote Industries > IT Division"
 }
 
 // Settings types
@@ -59,9 +66,11 @@ export interface Report {
 
 // Initial mock data
 const initialBudgets: Budget[] = [
-  { id: 'budget-1', tenantId: 'tenant-1', name: 'Dangote Monthly Budget', amount: 250000, period: 'monthly', alertThreshold: 80, createdAt: '2024-01-01' },
-  { id: 'budget-2', tenantId: 'tenant-2', name: 'MTN Monthly Budget', amount: 500000, period: 'monthly', alertThreshold: 85, createdAt: '2024-01-01' },
-  { id: 'budget-3', tenantId: 'tenant-3', name: 'Flutterwave Monthly Budget', amount: 180000, period: 'monthly', alertThreshold: 75, createdAt: '2024-01-01' },
+  { id: 'budget-1', tenantId: 'tenant-1', name: 'Dangote Monthly Budget', amount: 250000, period: 'monthly', alertThreshold: 80, createdAt: '2024-01-01', entityType: 'tenant', entityId: 'tenant-1', entityPath: 'Zone A > Dangote Industries' },
+  { id: 'budget-2', tenantId: 'tenant-2', name: 'MTN Monthly Budget', amount: 500000, period: 'monthly', alertThreshold: 85, createdAt: '2024-01-01', entityType: 'tenant', entityId: 'tenant-2', entityPath: 'Zone A > MTN Nigeria' },
+  { id: 'budget-3', tenantId: 'tenant-3', name: 'Flutterwave Monthly Budget', amount: 180000, period: 'monthly', alertThreshold: 75, createdAt: '2024-01-01', entityType: 'tenant', entityId: 'tenant-3', entityPath: 'Zone B > Flutterwave' },
+  { id: 'budget-4', tenantId: 'tenant-1', name: 'IT Division Budget', amount: 112500, period: 'monthly', alertThreshold: 80, createdAt: '2024-01-15', entityType: 'vdc1', entityId: 'vdc-it-division', entityPath: 'Zone A > Dangote Industries > IT Division' },
+  { id: 'budget-5', tenantId: 'tenant-2', name: 'MTN Development Team', amount: 150000, period: 'monthly', alertThreshold: 90, createdAt: '2024-01-20', entityType: 'vdc2', entityId: 'vdc-dev-team', entityPath: 'Zone A > MTN Nigeria > IT Division > Development Team' },
 ];
 
 const initialReports: Report[] = [

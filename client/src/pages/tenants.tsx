@@ -113,7 +113,7 @@ export default function Tenants() {
 
   const viewTenantDashboard = (tenantId: string) => {
     setSelectedTenantId(tenantId);
-    setLocation('/');
+    setLocation(`/tenant/${tenantId}`);
   };
 
   const resetForm = () => {

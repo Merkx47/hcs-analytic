@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateServiceBreakdown, generateTenantSummaries, generateRegionBreakdown } from '@/lib/mock-data';
+import { generateServiceBreakdown, generateTenantSummaries } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
 import { useMemo } from 'react';
 import {
@@ -12,7 +12,6 @@ import {
 import {
   Layers,
   Users,
-  Globe,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -131,7 +130,7 @@ export default function Allocation() {
                   </ResponsiveContainer>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
-                  {serviceBreakdown.slice(0, 6).map((s, i) => (
+                  {serviceBreakdown.slice(0, 6).map((s) => (
                     <Badge 
                       key={s.service}
                       variant="secondary"
@@ -149,81 +148,79 @@ export default function Allocation() {
             </Card>
           </motion.div>
 
-          {selectedTenantId === 'all' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border h-full">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    Allocation by Tenant
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <Treemap
-                        data={tenantTreemapData}
-                        dataKey="size"
-                        aspectRatio={4/3}
-                        stroke="hsl(var(--background))"
-                        fill="#8884d8"
-                        content={({ x, y, width, height, name, fill }: any) => {
-                          const showText = name && width >= 60 && height >= 35;
-                          const displayName = name && name.length > 12 ? name.slice(0, 10) + '...' : name;
-                          return (
-                            <g>
-                              <rect
-                                x={x}
-                                y={y}
-                                width={width}
-                                height={height}
-                                fill={fill}
-                                stroke="hsl(var(--background))"
-                                strokeWidth={2}
-                                rx={4}
-                              />
-                              {showText && (
-                                <text
-                                  x={x + width / 2}
-                                  y={y + height / 2}
-                                  textAnchor="middle"
-                                  dominantBaseline="middle"
-                                  fill={textColor}
-                                  stroke="none"
-                                  fontSize={12}
-                                  fontWeight={500}
-                                  fontFamily="system-ui, -apple-system, sans-serif"
-                                >
-                                  {displayName}
-                                </text>
-                              )}
-                            </g>
-                          );
-                        }}
-                      >
-                        <Tooltip content={<CustomTooltip />} />
-                      </Treemap>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
-                    {tenantSummaries.slice(0, 4).map((t, i) => (
-                      <Badge 
-                        key={t.tenant.id}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {t.tenant.name}: {formatCompactCurrency(t.totalSpend, currency)}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Card className="bg-card/50 backdrop-blur-sm border-card-border h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Allocation by Tenant
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <Treemap
+                      data={tenantTreemapData}
+                      dataKey="size"
+                      aspectRatio={4/3}
+                      stroke="hsl(var(--background))"
+                      fill="#8884d8"
+                      content={({ x, y, width, height, name, fill }: any) => {
+                        const showText = name && width >= 60 && height >= 35;
+                        const displayName = name && name.length > 12 ? name.slice(0, 10) + '...' : name;
+                        return (
+                          <g>
+                            <rect
+                              x={x}
+                              y={y}
+                              width={width}
+                              height={height}
+                              fill={fill}
+                              stroke="hsl(var(--background))"
+                              strokeWidth={2}
+                              rx={4}
+                            />
+                            {showText && (
+                              <text
+                                x={x + width / 2}
+                                y={y + height / 2}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fill={textColor}
+                                stroke="none"
+                                fontSize={12}
+                                fontWeight={500}
+                                fontFamily="system-ui, -apple-system, sans-serif"
+                              >
+                                {displayName}
+                              </text>
+                            )}
+                          </g>
+                        );
+                      }}
+                    >
+                      <Tooltip content={<CustomTooltip />} />
+                    </Treemap>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
+                  {tenantSummaries.slice(0, 4).map((t) => (
+                    <Badge
+                      key={t.tenant.id}
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {t.tenant.name}: {formatCompactCurrency(t.totalSpend, currency)}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
     </ScrollArea>

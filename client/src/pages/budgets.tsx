@@ -32,22 +32,208 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { useDataStore } from '@/lib/data-store';
+import { useDataStore, type EntityType } from '@/lib/data-store';
 import { generateKPIs } from '@/lib/mock-data';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
   Target,
   Plus,
   AlertTriangle,
   CheckCircle2,
   TrendingUp,
-  Calendar,
   Pencil,
   Trash2,
+  Building2,
+  Globe,
+  Layers,
+  ChevronRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// HCS Hierarchy Data Structure
+interface VDCNode {
+  id: string;
+  name: string;
+  level: 'vdc1' | 'vdc2' | 'vdc3' | 'vdc4' | 'vdc5';
+  children?: VDCNode[];
+}
+
+interface TenantNode {
+  id: string;
+  name: string;
+  vdcs: VDCNode[];
+}
+
+interface ZoneNode {
+  id: string;
+  name: string;
+  tenants: TenantNode[];
+}
+
+// Mock HCS hierarchy data
+const hcsHierarchy: ZoneNode[] = [
+  {
+    id: 'zone-a',
+    name: 'Zone A (Lagos)',
+    tenants: [
+      {
+        id: 'tenant-1',
+        name: 'Dangote Industries',
+        vdcs: [
+          {
+            id: 'vdc-it-division',
+            name: 'IT Division',
+            level: 'vdc1',
+            children: [
+              {
+                id: 'vdc-dev-team-1',
+                name: 'Development Team',
+                level: 'vdc2',
+                children: [
+                  { id: 'vdc-frontend', name: 'Frontend', level: 'vdc3' },
+                  { id: 'vdc-backend', name: 'Backend', level: 'vdc3' },
+                ],
+              },
+              { id: 'vdc-ops-team-1', name: 'Operations Team', level: 'vdc2' },
+            ],
+          },
+          {
+            id: 'vdc-operations',
+            name: 'Operations Division',
+            level: 'vdc1',
+            children: [
+              { id: 'vdc-logistics', name: 'Logistics', level: 'vdc2' },
+              { id: 'vdc-manufacturing', name: 'Manufacturing', level: 'vdc2' },
+            ],
+          },
+          { id: 'vdc-finance', name: 'Finance Division', level: 'vdc1' },
+        ],
+      },
+      {
+        id: 'tenant-2',
+        name: 'MTN Nigeria',
+        vdcs: [
+          {
+            id: 'vdc-mtn-it',
+            name: 'IT Division',
+            level: 'vdc1',
+            children: [
+              {
+                id: 'vdc-dev-team',
+                name: 'Development Team',
+                level: 'vdc2',
+                children: [
+                  { id: 'vdc-mobile-apps', name: 'Mobile Apps', level: 'vdc3' },
+                  { id: 'vdc-web-platform', name: 'Web Platform', level: 'vdc3' },
+                ],
+              },
+              { id: 'vdc-network-ops', name: 'Network Operations', level: 'vdc2' },
+            ],
+          },
+          { id: 'vdc-mtn-marketing', name: 'Marketing', level: 'vdc1' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'zone-b',
+    name: 'Zone B (Abuja)',
+    tenants: [
+      {
+        id: 'tenant-3',
+        name: 'Flutterwave',
+        vdcs: [
+          {
+            id: 'vdc-flutter-engineering',
+            name: 'Engineering',
+            level: 'vdc1',
+            children: [
+              { id: 'vdc-payments', name: 'Payments Team', level: 'vdc2' },
+              { id: 'vdc-security', name: 'Security Team', level: 'vdc2' },
+            ],
+          },
+          { id: 'vdc-flutter-product', name: 'Product', level: 'vdc1' },
+        ],
+      },
+      {
+        id: 'tenant-6',
+        name: 'Andela',
+        vdcs: [
+          { id: 'vdc-andela-talent', name: 'Talent Operations', level: 'vdc1' },
+          { id: 'vdc-andela-eng', name: 'Engineering', level: 'vdc1' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'zone-c',
+    name: 'Zone C (Nairobi)',
+    tenants: [
+      {
+        id: 'tenant-4',
+        name: 'Safaricom Kenya',
+        vdcs: [
+          {
+            id: 'vdc-safari-mpesa',
+            name: 'M-Pesa Division',
+            level: 'vdc1',
+            children: [
+              { id: 'vdc-mpesa-core', name: 'Core Systems', level: 'vdc2' },
+              { id: 'vdc-mpesa-api', name: 'API Services', level: 'vdc2' },
+            ],
+          },
+          { id: 'vdc-safari-network', name: 'Network Division', level: 'vdc1' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'zone-d',
+    name: 'Zone D (Johannesburg)',
+    tenants: [
+      {
+        id: 'tenant-5',
+        name: 'Standard Bank SA',
+        vdcs: [
+          {
+            id: 'vdc-bank-digital',
+            name: 'Digital Banking',
+            level: 'vdc1',
+            children: [
+              { id: 'vdc-online-banking', name: 'Online Banking', level: 'vdc2' },
+              { id: 'vdc-mobile-banking', name: 'Mobile Banking', level: 'vdc2' },
+            ],
+          },
+          { id: 'vdc-bank-core', name: 'Core Systems', level: 'vdc1' },
+        ],
+      },
+      {
+        id: 'tenant-7',
+        name: 'Jumia Group',
+        vdcs: [
+          { id: 'vdc-jumia-ecom', name: 'E-Commerce Platform', level: 'vdc1' },
+          { id: 'vdc-jumia-logistics', name: 'Logistics', level: 'vdc1' },
+        ],
+      },
+    ],
+  },
+];
+
+// Helper to get entity type display name
+const getEntityTypeLabel = (type: EntityType): string => {
+  const labels: Record<EntityType, string> = {
+    zone: 'Zone',
+    tenant: 'Tenant',
+    vdc1: 'VDC Level 1',
+    vdc2: 'VDC Level 2',
+    vdc3: 'VDC Level 3',
+    vdc4: 'VDC Level 4',
+    vdc5: 'VDC Level 5',
+  };
+  return labels[type];
+};
 
 export default function Budgets() {
   const { currency, selectedTenantId } = useFinOpsStore();
@@ -55,6 +241,14 @@ export default function Budgets() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<typeof budgets[0] | null>(null);
+
+  // Entity selection state for hierarchical picker
+  const [selectedZone, setSelectedZone] = useState<string>('');
+  const [selectedTenant, setSelectedTenant] = useState<string>('');
+  const [selectedVdc1, setSelectedVdc1] = useState<string>('');
+  const [selectedVdc2, setSelectedVdc2] = useState<string>('');
+  const [selectedVdc3, setSelectedVdc3] = useState<string>('');
+  const [entityType, setEntityType] = useState<EntityType>('tenant');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -64,6 +258,90 @@ export default function Budgets() {
     period: 'monthly' as 'monthly' | 'quarterly' | 'yearly',
     alertThreshold: '80',
   });
+
+  // Get available options based on selections
+  const availableZones = hcsHierarchy;
+  const availableTenants = useMemo(() => {
+    if (!selectedZone) return [];
+    const zone = hcsHierarchy.find(z => z.id === selectedZone);
+    return zone?.tenants || [];
+  }, [selectedZone]);
+
+  const availableVdc1 = useMemo(() => {
+    if (!selectedTenant) return [];
+    const zone = hcsHierarchy.find(z => z.id === selectedZone);
+    const tenant = zone?.tenants.find(t => t.id === selectedTenant);
+    return tenant?.vdcs || [];
+  }, [selectedZone, selectedTenant]);
+
+  const availableVdc2 = useMemo(() => {
+    if (!selectedVdc1) return [];
+    const zone = hcsHierarchy.find(z => z.id === selectedZone);
+    const tenant = zone?.tenants.find(t => t.id === selectedTenant);
+    const vdc1 = tenant?.vdcs.find(v => v.id === selectedVdc1);
+    return vdc1?.children || [];
+  }, [selectedZone, selectedTenant, selectedVdc1]);
+
+  const availableVdc3 = useMemo(() => {
+    if (!selectedVdc2) return [];
+    const zone = hcsHierarchy.find(z => z.id === selectedZone);
+    const tenant = zone?.tenants.find(t => t.id === selectedTenant);
+    const vdc1 = tenant?.vdcs.find(v => v.id === selectedVdc1);
+    const vdc2 = vdc1?.children?.find(v => v.id === selectedVdc2);
+    return vdc2?.children || [];
+  }, [selectedZone, selectedTenant, selectedVdc1, selectedVdc2]);
+
+  // Calculate entity path and resolve selections
+  const getEntityPath = useCallback((): string => {
+    const parts: string[] = [];
+    const zone = hcsHierarchy.find(z => z.id === selectedZone);
+    if (zone) parts.push(zone.name);
+    if (entityType === 'zone') return parts.join(' > ');
+
+    const tenant = zone?.tenants.find(t => t.id === selectedTenant);
+    if (tenant) parts.push(tenant.name);
+    if (entityType === 'tenant') return parts.join(' > ');
+
+    const vdc1 = tenant?.vdcs.find(v => v.id === selectedVdc1);
+    if (vdc1) parts.push(vdc1.name);
+    if (entityType === 'vdc1') return parts.join(' > ');
+
+    const vdc2 = vdc1?.children?.find(v => v.id === selectedVdc2);
+    if (vdc2) parts.push(vdc2.name);
+    if (entityType === 'vdc2') return parts.join(' > ');
+
+    const vdc3 = vdc2?.children?.find(v => v.id === selectedVdc3);
+    if (vdc3) parts.push(vdc3.name);
+    return parts.join(' > ');
+  }, [selectedZone, selectedTenant, selectedVdc1, selectedVdc2, selectedVdc3, entityType]);
+
+  const getSelectedEntityId = useCallback((): string => {
+    switch (entityType) {
+      case 'zone': return selectedZone;
+      case 'tenant': return selectedTenant;
+      case 'vdc1': return selectedVdc1;
+      case 'vdc2': return selectedVdc2;
+      case 'vdc3': return selectedVdc3;
+      default: return '';
+    }
+  }, [entityType, selectedZone, selectedTenant, selectedVdc1, selectedVdc2, selectedVdc3]);
+
+  const getSelectedTenantId = useCallback((): string => {
+    // Always return the tenant ID for budget tracking purposes
+    return selectedTenant || '';
+  }, [selectedTenant]);
+
+  // Determine entity type based on deepest selection
+  const updateEntityType = useCallback(() => {
+    if (selectedVdc3) setEntityType('vdc3');
+    else if (selectedVdc2) setEntityType('vdc2');
+    else if (selectedVdc1) setEntityType('vdc1');
+    else if (selectedTenant) setEntityType('tenant');
+    else if (selectedZone) setEntityType('zone');
+  }, [selectedZone, selectedTenant, selectedVdc1, selectedVdc2, selectedVdc3]);
+
+  // Check if entity selection is valid
+  const isEntityValid = selectedZone && (entityType === 'zone' || selectedTenant);
 
   const budgetData = useMemo(() => {
     const relevantBudgets = selectedTenantId === 'all'
@@ -122,17 +400,26 @@ export default function Budgets() {
       period: 'monthly',
       alertThreshold: '80',
     });
+    setSelectedZone('');
+    setSelectedTenant('');
+    setSelectedVdc1('');
+    setSelectedVdc2('');
+    setSelectedVdc3('');
+    setEntityType('tenant');
   };
 
   const handleAddBudget = () => {
-    if (!formData.tenantId || !formData.name || !formData.amount) return;
+    if (!isEntityValid || !formData.name || !formData.amount) return;
 
     addBudget({
-      tenantId: formData.tenantId,
+      tenantId: getSelectedTenantId() || selectedZone, // Use zone if no tenant selected
       name: formData.name,
       amount: parseFloat(formData.amount),
       period: formData.period,
       alertThreshold: parseInt(formData.alertThreshold) || 80,
+      entityType: entityType,
+      entityId: getSelectedEntityId(),
+      entityPath: getEntityPath(),
     });
 
     resetForm();
@@ -188,49 +475,207 @@ export default function Budgets() {
                 Create Budget
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>Create New Budget</DialogTitle>
                 <DialogDescription>
-                  Set up a budget to track and control cloud spending.
+                  Set up a budget for any entity in the HCS hierarchy.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="tenant">Tenant</Label>
-                  <Select value={formData.tenantId} onValueChange={(v) => setFormData({ ...formData, tenantId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tenant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tenants.map((tenant) => (
-                        <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-4 py-4">
+                {/* Entity Selection - HCS Organogram */}
+                <div className="space-y-3 p-4 rounded-lg border border-border bg-muted/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Layers className="h-4 w-4 text-primary" />
+                    <Label className="text-sm font-medium">Select Entity (HCS Hierarchy)</Label>
+                  </div>
+
+                  {/* Zone Selection */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right text-xs text-muted-foreground">Zone</Label>
+                    <div className="col-span-3">
+                      <Select
+                        value={selectedZone}
+                        onValueChange={(v) => {
+                          setSelectedZone(v);
+                          setSelectedTenant('');
+                          setSelectedVdc1('');
+                          setSelectedVdc2('');
+                          setSelectedVdc3('');
+                          setEntityType('zone');
+                        }}
+                      >
+                        <SelectTrigger className="h-9">
+                          <Globe className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                          <SelectValue placeholder="Select zone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableZones.map((zone) => (
+                            <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Tenant Selection */}
+                  {selectedZone && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right text-xs text-muted-foreground">Tenant</Label>
+                      <div className="col-span-3 flex items-center gap-2">
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <Select
+                          value={selectedTenant}
+                          onValueChange={(v) => {
+                            setSelectedTenant(v);
+                            setSelectedVdc1('');
+                            setSelectedVdc2('');
+                            setSelectedVdc3('');
+                            setEntityType('tenant');
+                          }}
+                        >
+                          <SelectTrigger className="h-9 flex-1">
+                            <Building2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <SelectValue placeholder="Select tenant (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableTenants.map((tenant) => (
+                              <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* VDC Level 1 Selection */}
+                  {selectedTenant && availableVdc1.length > 0 && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right text-xs text-muted-foreground">VDC L1</Label>
+                      <div className="col-span-3 flex items-center gap-2">
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <Select
+                          value={selectedVdc1}
+                          onValueChange={(v) => {
+                            setSelectedVdc1(v);
+                            setSelectedVdc2('');
+                            setSelectedVdc3('');
+                            setEntityType('vdc1');
+                          }}
+                        >
+                          <SelectTrigger className="h-9 flex-1">
+                            <Layers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <SelectValue placeholder="Select VDC Level 1 (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableVdc1.map((vdc) => (
+                              <SelectItem key={vdc.id} value={vdc.id}>{vdc.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* VDC Level 2 Selection */}
+                  {selectedVdc1 && availableVdc2.length > 0 && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right text-xs text-muted-foreground">VDC L2</Label>
+                      <div className="col-span-3 flex items-center gap-2">
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <Select
+                          value={selectedVdc2}
+                          onValueChange={(v) => {
+                            setSelectedVdc2(v);
+                            setSelectedVdc3('');
+                            setEntityType('vdc2');
+                          }}
+                        >
+                          <SelectTrigger className="h-9 flex-1">
+                            <Layers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <SelectValue placeholder="Select VDC Level 2 (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableVdc2.map((vdc) => (
+                              <SelectItem key={vdc.id} value={vdc.id}>{vdc.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* VDC Level 3 Selection */}
+                  {selectedVdc2 && availableVdc3.length > 0 && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right text-xs text-muted-foreground">VDC L3</Label>
+                      <div className="col-span-3 flex items-center gap-2">
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <Select
+                          value={selectedVdc3}
+                          onValueChange={(v) => {
+                            setSelectedVdc3(v);
+                            setEntityType('vdc3');
+                          }}
+                        >
+                          <SelectTrigger className="h-9 flex-1">
+                            <Layers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <SelectValue placeholder="Select VDC Level 3 (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableVdc3.map((vdc) => (
+                              <SelectItem key={vdc.id} value={vdc.id}>{vdc.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected Path Display */}
+                  {selectedZone && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Budget applies to:</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {getEntityTypeLabel(entityType)}
+                        </Badge>
+                      </div>
+                      <p className="text-sm font-medium mt-1 text-primary">{getEntityPath()}</p>
+                    </div>
+                  )}
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Budget Name</Label>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Budget Name</Label>
                   <Input
                     id="name"
                     placeholder="e.g., Q1 Cloud Budget"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="col-span-3"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="amount">Amount (USD)</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="e.g., 100000"
-                      value={formData.amount}
-                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="period">Period</Label>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="amount" className="text-right">Amount (USD)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="e.g., 100000"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="period" className="text-right">Period</Label>
+                  <div className="col-span-3">
                     <Select value={formData.period} onValueChange={(v: any) => setFormData({ ...formData, period: v })}>
                       <SelectTrigger>
                         <SelectValue />
@@ -243,25 +688,27 @@ export default function Budgets() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="alertThreshold">Alert Threshold (%)</Label>
-                  <Input
-                    id="alertThreshold"
-                    type="number"
-                    min="1"
-                    max="100"
-                    placeholder="80"
-                    value={formData.alertThreshold}
-                    onChange={(e) => setFormData({ ...formData, alertThreshold: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">Get alerted when spending reaches this percentage of budget</p>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="alertThreshold" className="text-right">Alert (%)</Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="alertThreshold"
+                      type="number"
+                      min="1"
+                      max="100"
+                      placeholder="80"
+                      value={formData.alertThreshold}
+                      onChange={(e) => setFormData({ ...formData, alertThreshold: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Alert when spending reaches this % of budget</p>
+                  </div>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => { resetForm(); setIsAddDialogOpen(false); }}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddBudget} disabled={!formData.tenantId || !formData.name || !formData.amount}>
+                <Button onClick={handleAddBudget} disabled={!isEntityValid || !formData.name || !formData.amount}>
                   Create Budget
                 </Button>
               </DialogFooter>
@@ -278,27 +725,29 @@ export default function Budgets() {
                 Update budget settings.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Budget Name</Label>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-name" className="text-right">Budget Name</Label>
                 <Input
                   id="edit-name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-amount">Amount (USD)</Label>
-                  <Input
-                    id="edit-amount"
-                    type="number"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-period">Period</Label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-amount" className="text-right">Amount (USD)</Label>
+                <Input
+                  id="edit-amount"
+                  type="number"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-period" className="text-right">Period</Label>
+                <div className="col-span-3">
                   <Select value={formData.period} onValueChange={(v: any) => setFormData({ ...formData, period: v })}>
                     <SelectTrigger>
                       <SelectValue />
@@ -311,8 +760,8 @@ export default function Budgets() {
                   </Select>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-alertThreshold">Alert Threshold (%)</Label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-alertThreshold" className="text-right">Alert (%)</Label>
                 <Input
                   id="edit-alertThreshold"
                   type="number"
@@ -320,6 +769,7 @@ export default function Budgets() {
                   max="100"
                   value={formData.alertThreshold}
                   onChange={(e) => setFormData({ ...formData, alertThreshold: e.target.value })}
+                  className="col-span-3"
                 />
               </div>
             </div>
@@ -397,9 +847,18 @@ export default function Budgets() {
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium">{budget.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{budget.name}</h3>
+                          {'entityType' in budget && budget.entityType && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {getEntityTypeLabel(budget.entityType as EntityType)}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                          {budget.tenantName} • {budget.period.charAt(0).toUpperCase() + budget.period.slice(1)} Budget
+                          {'entityPath' in budget && budget.entityPath
+                            ? budget.entityPath
+                            : budget.tenantName} • {budget.period.charAt(0).toUpperCase() + budget.period.slice(1)} Budget
                         </p>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">

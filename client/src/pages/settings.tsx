@@ -25,7 +25,10 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
+  Users,
 } from 'lucide-react';
+import { UserOnboarding } from '@/components/admin/user-onboarding';
+import { NotificationSettings } from '@/components/admin/notification-settings';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +56,6 @@ export default function Settings() {
   const [apiForm, setApiForm] = useState({
     accessKey: settings.apiCredentials.accessKey,
     secretKey: settings.apiCredentials.secretKey,
-    projectId: settings.apiCredentials.projectId,
   });
 
   const [newPassword, setNewPassword] = useState('');
@@ -65,7 +67,7 @@ export default function Settings() {
   };
 
   const handleConnectApi = async () => {
-    if (!apiForm.accessKey || !apiForm.secretKey || !apiForm.projectId) return;
+    if (!apiForm.accessKey || !apiForm.secretKey) return;
     setIsConnecting(true);
     await connectApi(apiForm);
     setIsConnecting(false);
@@ -97,6 +99,7 @@ export default function Settings() {
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList className="bg-muted/50">
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="api">API Keys</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
@@ -201,43 +204,23 @@ export default function Settings() {
             </motion.div>
           </TabsContent>
 
+          <TabsContent value="users" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <UserOnboarding />
+            </motion.div>
+          </TabsContent>
+
           <TabsContent value="notifications" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" />
-                    Notification Preferences
-                  </CardTitle>
-                  <CardDescription>Choose what notifications you receive</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {[
-                    { id: 'budgetAlerts', label: 'Budget Alerts', desc: 'Get notified when spending exceeds thresholds' },
-                    { id: 'costAnomalies', label: 'Cost Anomalies', desc: 'Alerts for unusual spending patterns' },
-                    { id: 'newRecommendations', label: 'New Recommendations', desc: 'Updates on new optimization opportunities' },
-                    { id: 'reportReady', label: 'Report Ready', desc: 'Notification when scheduled reports are ready' },
-                  ].map((item) => (
-                    <div key={item.id} className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor={item.id} className="font-medium">{item.label}</Label>
-                        <p className="text-sm text-muted-foreground">{item.desc}</p>
-                      </div>
-                      <Switch
-                        id={item.id}
-                        checked={settings.notifications[item.id as keyof typeof settings.notifications]}
-                        onCheckedChange={(checked) =>
-                          updateNotifications({ [item.id]: checked })
-                        }
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              <NotificationSettings />
             </motion.div>
           </TabsContent>
 
@@ -285,16 +268,6 @@ export default function Settings() {
                       disabled={settings.apiCredentials.isConnected}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="projectId">Project ID</Label>
-                    <Input
-                      id="projectId"
-                      value={apiForm.projectId}
-                      onChange={(e) => setApiForm({ ...apiForm, projectId: e.target.value })}
-                      placeholder="Enter your project ID"
-                      disabled={settings.apiCredentials.isConnected}
-                    />
-                  </div>
                   {settings.apiCredentials.isConnected ? (
                     <Button variant="destructive" onClick={disconnectApi}>
                       <XCircle className="h-4 w-4 mr-2" />
@@ -303,7 +276,7 @@ export default function Settings() {
                   ) : (
                     <Button
                       onClick={handleConnectApi}
-                      disabled={isConnecting || !apiForm.accessKey || !apiForm.secretKey || !apiForm.projectId}
+                      disabled={isConnecting || !apiForm.accessKey || !apiForm.secretKey}
                     >
                       {isConnecting ? (
                         <>
