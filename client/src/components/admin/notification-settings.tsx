@@ -1,3 +1,4 @@
+import { MdAdd, MdAttachMoney, MdChat, MdDelete, MdDescription, MdEmail, MdLayers, MdNotifications, MdPeople, MdSmartphone, MdTrackChanges, MdTrendingUp, MdTune, MdWarning } from 'react-icons/md';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,22 +40,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import {
-  Bell,
-  DollarSign,
-  AlertTriangle,
-  TrendingUp,
-  FileText,
-  Users,
-  Plus,
-  Trash2,
-  Mail,
-  MessageSquare,
-  Smartphone,
-  Settings2,
-  Target,
-  Layers,
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -61,7 +57,7 @@ const notificationCategories = [
   {
     id: 'budget',
     name: 'Budget Alerts',
-    icon: Target,
+    icon: MdTrackChanges,
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
     description: 'Get notified when spending approaches or exceeds budget thresholds',
@@ -75,7 +71,7 @@ const notificationCategories = [
   {
     id: 'cost',
     name: 'Cost Metrics',
-    icon: DollarSign,
+    icon: MdAttachMoney,
     color: 'text-emerald-500',
     bgColor: 'bg-emerald-500/10',
     description: 'Real-time cost monitoring and daily/weekly summaries',
@@ -89,7 +85,7 @@ const notificationCategories = [
   {
     id: 'anomaly',
     name: 'Cost Anomalies',
-    icon: AlertTriangle,
+    icon: MdWarning,
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
     description: 'Detect unusual spending patterns and potential issues',
@@ -103,7 +99,7 @@ const notificationCategories = [
   {
     id: 'optimization',
     name: 'Optimization Recommendations',
-    icon: TrendingUp,
+    icon: MdTrendingUp,
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
     description: 'Cost-saving opportunities and efficiency improvements',
@@ -117,7 +113,7 @@ const notificationCategories = [
   {
     id: 'reports',
     name: 'Reports & Analytics',
-    icon: FileText,
+    icon: MdDescription,
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
     description: 'Scheduled reports and analytics updates',
@@ -131,7 +127,7 @@ const notificationCategories = [
   {
     id: 'tenant',
     name: 'Tenant & VDC Alerts',
-    icon: Layers,
+    icon: MdLayers,
     color: 'text-cyan-500',
     bgColor: 'bg-cyan-500/10',
     description: 'Multi-tenant and VDC-specific notifications',
@@ -212,7 +208,7 @@ export function NotificationSettings() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold flex items-center gap-2">
-            <Bell className="h-5 w-5 text-primary" />
+            <MdNotifications className="h-5 w-5 text-primary" />
             Notification Rules
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
@@ -222,7 +218,7 @@ export function NotificationSettings() {
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
+              <MdAdd className="h-4 w-4 mr-2" />
               Add Rule
             </Button>
           </DialogTrigger>
@@ -329,9 +325,9 @@ export function NotificationSettings() {
                 <Label>Notification Channels</Label>
                 <div className="flex gap-4">
                   {[
-                    { id: 'email', icon: Mail, label: 'Email' },
-                    { id: 'sms', icon: Smartphone, label: 'SMS' },
-                    { id: 'in_app', icon: Bell, label: 'In-App' },
+                    { id: 'email', icon: MdEmail, label: 'Email' },
+                    { id: 'sms', icon: MdSmartphone, label: 'SMS' },
+                    { id: 'in_app', icon: MdNotifications, label: 'In-App' },
                   ].map((channel) => (
                     <div key={channel.id} className="flex items-center space-x-2">
                       <Checkbox
@@ -381,7 +377,7 @@ export function NotificationSettings() {
         <CardContent>
           {rules.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <MdNotifications className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>No notification rules configured</p>
               <p className="text-sm">Click "Add Rule" to create your first notification rule</p>
             </div>
@@ -422,7 +418,7 @@ export function NotificationSettings() {
 
                           {/* Recipients */}
                           <div className="flex items-center gap-2 mt-2">
-                            <Users className="h-3 w-3 text-muted-foreground" />
+                            <MdPeople className="h-3 w-3 text-muted-foreground" />
                             <div className="flex gap-1 flex-wrap">
                               {rule.recipients.map((rid) => {
                                 const user = getUser(rid);
@@ -437,9 +433,9 @@ export function NotificationSettings() {
 
                           {/* Channels */}
                           <div className="flex items-center gap-2 mt-1.5">
-                            {rule.channels.includes('email') && <Mail className="h-3 w-3 text-muted-foreground" />}
-                            {rule.channels.includes('sms') && <Smartphone className="h-3 w-3 text-muted-foreground" />}
-                            {rule.channels.includes('in_app') && <Bell className="h-3 w-3 text-muted-foreground" />}
+                            {rule.channels.includes('email') && <MdEmail className="h-3 w-3 text-muted-foreground" />}
+                            {rule.channels.includes('sms') && <MdSmartphone className="h-3 w-3 text-muted-foreground" />}
+                            {rule.channels.includes('in_app') && <MdNotifications className="h-3 w-3 text-muted-foreground" />}
                             {rule.threshold && (
                               <span className="text-xs text-muted-foreground ml-2">
                                 Threshold: {rule.threshold}{rule.metricId.includes('spike') ? '%' : ' USD'}
@@ -454,14 +450,34 @@ export function NotificationSettings() {
                           checked={rule.enabled}
                           onCheckedChange={() => toggleRule(rule.id)}
                         />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => deleteRule(rule.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <MdDelete className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Notification Rule</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this notification rule? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => deleteRule(rule.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </motion.div>
@@ -476,7 +492,7 @@ export function NotificationSettings() {
       <Card className="bg-card/50 backdrop-blur-sm border-card-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Settings2 className="h-4 w-4" />
+            <MdTune className="h-4 w-4" />
             Notification Categories
           </CardTitle>
           <CardDescription>
@@ -545,7 +561,7 @@ export function NotificationSettings() {
                                   setIsAddDialogOpen(true);
                                 }}
                               >
-                                <Plus className="h-3 w-3 mr-1" />
+                                <MdAdd className="h-3 w-3 mr-1" />
                                 Add
                               </Button>
                             )}

@@ -1,3 +1,4 @@
+import { MdApartment, MdCalendarToday, MdCheckCircle, MdDarkMode, MdInfoOutline, MdLightMode, MdLogout, MdNotifications, MdPerson, MdSettings, MdWarning } from 'react-icons/md';
 import { useFinOpsStore, formatCompactCurrency } from '@/lib/finops-store';
 import { mockTenants, generateKPIs, getDaysFromPreset } from '@/lib/mock-data';
 import { LanguageSelector } from '@/lib/i18n';
@@ -23,23 +24,11 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import {
-  Building2,
-  Calendar,
-  Bell,
-  Settings,
-  User,
-  LogOut,
-  Moon,
-  Sun,
-  AlertTriangle,
-  CheckCircle2,
-  Info,
-} from 'lucide-react';
 import type { Currency, DateRangePreset } from '@shared/schema';
 import huaweiLogo from '@assets/image_1764758201045.png';
 import { useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { useDataStore } from '@/lib/data-store';
 
 // Mock notifications data
 const notifications = [
@@ -88,6 +77,7 @@ const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
 
 export function Header() {
   const [, setLocation] = useLocation();
+  const logout = useDataStore((s) => s.logout);
   const {
     currency,
     setCurrency,
@@ -97,7 +87,7 @@ export function Header() {
     setDateRange,
   } = useFinOpsStore();
 
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
   useEffect(() => {
     const html = document.documentElement;
@@ -153,14 +143,14 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
+    <header className="h-16 border-b border-border bg-sidebar sticky top-0 z-50">
       <div className="h-full px-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <img 
               src={huaweiLogo} 
               alt="Huawei Cloud" 
-              className="h-8 w-auto object-contain"
+              className="h-8 w-auto object-contain dark:brightness-0 dark:invert"
               data-testid="img-huawei-logo"
             />
             <div className="hidden sm:block">
@@ -169,7 +159,6 @@ export function Header() {
             </div>
           </div>
           
-          <div className="h-6 w-px bg-border hidden md:block" />
           
           <Select 
             value={selectedTenantId} 
@@ -178,9 +167,10 @@ export function Header() {
             <SelectTrigger
               className="w-[280px] bg-background/50"
               data-testid="select-tenant"
+              data-tour="tenant-selector"
             >
               <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-                <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <MdApartment className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <SelectValue placeholder="Select Tenant" />
               </div>
             </SelectTrigger>
@@ -230,9 +220,10 @@ export function Header() {
             <SelectTrigger
               className="w-[160px] bg-background/50"
               data-testid="select-date-range"
+              data-tour="date-range"
             >
               <div className="flex items-center gap-2 whitespace-nowrap">
-                <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <MdCalendarToday className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <SelectValue />
               </div>
             </SelectTrigger>
@@ -282,11 +273,12 @@ export function Header() {
             size="icon"
             onClick={() => setIsDark(!isDark)}
             data-testid="button-theme-toggle"
+            data-tour="theme-toggle"
           >
             {isDark ? (
-              <Sun className="h-4 w-4" />
+              <MdLightMode className="h-4 w-4" />
             ) : (
-              <Moon className="h-4 w-4" />
+              <MdDarkMode className="h-4 w-4" />
             )}
           </Button>
 
@@ -297,8 +289,9 @@ export function Header() {
                 size="icon"
                 className="relative"
                 data-testid="button-notifications"
+                data-tour="notifications"
               >
-                <Bell className="h-4 w-4" />
+                <MdNotifications className="h-4 w-4" />
                 {notifications.filter(n => !n.read).length > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
                     {notifications.filter(n => !n.read).length}
@@ -318,9 +311,9 @@ export function Header() {
               <ScrollArea className="h-[280px]">
                 <div className="divide-y divide-border">
                   {notifications.map((notification) => {
-                    const IconComponent = notification.type === 'warning' ? AlertTriangle
-                      : notification.type === 'success' ? CheckCircle2
-                      : Info;
+                    const IconComponent = notification.type === 'warning' ? MdWarning
+                      : notification.type === 'success' ? MdCheckCircle
+                      : MdInfoOutline;
                     const iconColor = notification.type === 'warning' ? 'text-amber-500'
                       : notification.type === 'success' ? 'text-emerald-500'
                       : 'text-blue-500';
@@ -355,7 +348,7 @@ export function Header() {
                 </div>
               </ScrollArea>
               <div className="px-4 py-2 border-t border-border">
-                <Button variant="ghost" size="sm" className="w-full text-xs">
+                <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setLocation('/notifications')}>
                   View All Notifications
                 </Button>
               </div>
@@ -369,7 +362,7 @@ export function Header() {
                 size="icon"
                 data-testid="button-user-menu"
               >
-                <User className="h-4 w-4" />
+                <MdPerson className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -381,22 +374,23 @@ export function Header() {
                 data-testid="menu-item-profile"
                 onClick={() => setLocation('/settings')}
               >
-                <User className="h-4 w-4 mr-2" />
+                <MdPerson className="h-4 w-4 mr-2" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem
                 data-testid="menu-item-settings"
                 onClick={() => setLocation('/settings')}
               >
-                <Settings className="h-4 w-4 mr-2" />
+                <MdSettings className="h-4 w-4 mr-2" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 data-testid="menu-item-logout"
+                onClick={() => { logout(); setLocation('/login'); }}
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                <MdLogout className="h-4 w-4 mr-2" />
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>

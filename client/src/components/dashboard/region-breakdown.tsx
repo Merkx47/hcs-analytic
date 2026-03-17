@@ -1,3 +1,4 @@
+import { MdPublic } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateRegionBreakdown, getDaysFromPreset } from '@/lib/mock-data';
@@ -13,7 +14,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { Globe2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const REGION_COLORS = [
@@ -63,7 +63,7 @@ export function RegionBreakdownChart() {
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
           <div>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Globe2 className="h-5 w-5 text-primary" />
+              <MdPublic className="h-5 w-5 text-primary" />
               Regional Distribution
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">Cost by Huawei Cloud region</p>

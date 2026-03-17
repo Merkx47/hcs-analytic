@@ -1,3 +1,4 @@
+import { MdAdd, MdApartment, MdCheckCircle, MdChevronRight, MdDelete, MdEdit, MdLayers, MdPublic, MdTrackChanges, MdTrendingUp, MdWarning } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,19 +36,6 @@ import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/fin
 import { useDataStore, type EntityType } from '@/lib/data-store';
 import { generateKPIs } from '@/lib/mock-data';
 import { useMemo, useState, useCallback } from 'react';
-import {
-  Target,
-  Plus,
-  AlertTriangle,
-  CheckCircle2,
-  TrendingUp,
-  Pencil,
-  Trash2,
-  Building2,
-  Globe,
-  Layers,
-  ChevronRight,
-} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -462,16 +450,19 @@ export default function Budgets() {
           transition={{ duration: 0.3 }}
           className="flex items-center justify-between gap-4 mb-6"
         >
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Budget Management</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Track and manage cloud spending budgets
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-primary/10">
+              <MdTrackChanges className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Budget Management</h1>
+              <p className="text-sm text-muted-foreground">Create and monitor budgets across tenants and VDCs</p>
+            </div>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-2" />
+                <MdAdd className="h-4 w-4 mr-2" />
                 Create Budget
               </Button>
             </DialogTrigger>
@@ -486,7 +477,7 @@ export default function Budgets() {
                 {/* Entity Selection - HCS Organogram */}
                 <div className="space-y-3 p-4 rounded-lg border border-border bg-muted/30">
                   <div className="flex items-center gap-2 mb-2">
-                    <Layers className="h-4 w-4 text-primary" />
+                    <MdLayers className="h-4 w-4 text-primary" />
                     <Label className="text-sm font-medium">Select Entity (HCS Hierarchy)</Label>
                   </div>
 
@@ -506,7 +497,7 @@ export default function Budgets() {
                         }}
                       >
                         <SelectTrigger className="h-9">
-                          <Globe className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                          <MdPublic className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                           <SelectValue placeholder="Select zone" />
                         </SelectTrigger>
                         <SelectContent>
@@ -523,7 +514,7 @@ export default function Budgets() {
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label className="text-right text-xs text-muted-foreground">Tenant</Label>
                       <div className="col-span-3 flex items-center gap-2">
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                         <Select
                           value={selectedTenant}
                           onValueChange={(v) => {
@@ -535,7 +526,7 @@ export default function Budgets() {
                           }}
                         >
                           <SelectTrigger className="h-9 flex-1">
-                            <Building2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <MdApartment className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Select tenant (optional)" />
                           </SelectTrigger>
                           <SelectContent>
@@ -553,8 +544,8 @@ export default function Budgets() {
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label className="text-right text-xs text-muted-foreground">VDC L1</Label>
                       <div className="col-span-3 flex items-center gap-2">
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
                         <Select
                           value={selectedVdc1}
                           onValueChange={(v) => {
@@ -565,7 +556,7 @@ export default function Budgets() {
                           }}
                         >
                           <SelectTrigger className="h-9 flex-1">
-                            <Layers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <MdLayers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Select VDC Level 1 (optional)" />
                           </SelectTrigger>
                           <SelectContent>
@@ -583,9 +574,9 @@ export default function Budgets() {
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label className="text-right text-xs text-muted-foreground">VDC L2</Label>
                       <div className="col-span-3 flex items-center gap-2">
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
                         <Select
                           value={selectedVdc2}
                           onValueChange={(v) => {
@@ -595,7 +586,7 @@ export default function Budgets() {
                           }}
                         >
                           <SelectTrigger className="h-9 flex-1">
-                            <Layers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <MdLayers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Select VDC Level 2 (optional)" />
                           </SelectTrigger>
                           <SelectContent>
@@ -613,10 +604,10 @@ export default function Budgets() {
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label className="text-right text-xs text-muted-foreground">VDC L3</Label>
                       <div className="col-span-3 flex items-center gap-2">
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
-                        <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                        <MdChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 -ml-2" />
                         <Select
                           value={selectedVdc3}
                           onValueChange={(v) => {
@@ -625,7 +616,7 @@ export default function Budgets() {
                           }}
                         >
                           <SelectTrigger className="h-9 flex-1">
-                            <Layers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <MdLayers className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Select VDC Level 3 (optional)" />
                           </SelectTrigger>
                           <SelectContent>
@@ -786,10 +777,10 @@ export default function Budgets() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total Budget', value: formatCurrency(totalBudget, currency), icon: Target, color: 'text-primary', isValue: true },
-            { label: 'Total Spent', value: formatCurrency(totalSpent, currency), icon: TrendingUp, color: 'text-blue-500', isValue: true },
-            { label: 'At Risk', value: atRisk, icon: AlertTriangle, color: 'text-amber-500' },
-            { label: 'Over Budget', value: overBudget, icon: AlertTriangle, color: 'text-destructive' },
+            { label: 'Total Budget', value: formatCurrency(totalBudget, currency), icon: MdTrackChanges, color: 'text-primary', isValue: true },
+            { label: 'Total Spent', value: formatCurrency(totalSpent, currency), icon: MdTrendingUp, color: 'text-blue-500', isValue: true },
+            { label: 'At Risk', value: atRisk, icon: MdWarning, color: 'text-amber-500' },
+            { label: 'Over Budget', value: overBudget, icon: MdWarning, color: 'text-destructive' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -830,7 +821,7 @@ export default function Budgets() {
           <Card className="bg-card/50 backdrop-blur-sm border-card-border">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
+                <MdTrackChanges className="h-5 w-5 text-primary" />
                 Budget Overview
                 <Badge variant="secondary" className="ml-2">{allBudgets.length}</Badge>
               </CardTitle>
@@ -865,17 +856,17 @@ export default function Budgets() {
                         <div className="w-24 flex justify-end">
                           {budget.percentage >= 100 ? (
                             <Badge variant="destructive" className="text-xs">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              <MdWarning className="h-3 w-3 mr-1" />
                               Over Budget
                             </Badge>
                           ) : budget.percentage >= budget.alertThreshold ? (
                             <Badge className="text-xs bg-amber-500/10 text-amber-500">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              <MdWarning className="h-3 w-3 mr-1" />
                               At Risk
                             </Badge>
                           ) : (
                             <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-500">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              <MdCheckCircle className="h-3 w-3 mr-1" />
                               On Track
                             </Badge>
                           )}
@@ -888,7 +879,7 @@ export default function Budgets() {
                               className="h-8 w-8"
                               onClick={() => openEditDialog(budget)}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <MdEdit className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -897,7 +888,7 @@ export default function Budgets() {
                                   size="icon"
                                   className="h-8 w-8 text-destructive hover:text-destructive"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <MdDelete className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
@@ -951,13 +942,13 @@ export default function Budgets() {
 
                 {allBudgets.length === 0 && (
                   <div className="text-center py-12">
-                    <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <MdTrackChanges className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No Budgets Found</h3>
                     <p className="text-sm text-muted-foreground mb-4">
                       Create a budget to start tracking your cloud spending.
                     </p>
                     <Button onClick={() => setIsAddDialogOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
+                      <MdAdd className="h-4 w-4 mr-2" />
                       Create Budget
                     </Button>
                   </div>

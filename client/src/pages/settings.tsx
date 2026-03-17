@@ -1,3 +1,4 @@
+import { MdCancel, MdCheckCircle, MdLock, MdNotifications, MdPeople, MdPerson, MdPublic, MdRefresh, MdSave, MdSettings as MdSettingsIcon, MdShield, MdSync, MdTranslate, MdVpnKey } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,21 +13,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFinOpsStore } from '@/lib/finops-store';
-import { useDataStore } from '@/lib/data-store';
+import { useDataStore, defaultExchangeRates } from '@/lib/data-store';
+import type { Language, ExchangeRates } from '@/lib/data-store';
 import type { Currency } from '@shared/schema';
+import { currencyInfo } from '@shared/schema';
 import { useState } from 'react';
-import {
-  Settings as SettingsIcon,
-  User,
-  Bell,
-  Shield,
-  Key,
-  Globe,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Users,
-} from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import { UserOnboarding } from '@/components/admin/user-onboarding';
 import { NotificationSettings } from '@/components/admin/notification-settings';
 import { motion } from 'framer-motion';
@@ -44,6 +36,9 @@ export default function Settings() {
     disconnectApi,
     updateSecurity,
     changePassword,
+    updateLanguage,
+    updateExchangeRates,
+    resetExchangeRates,
   } = useDataStore();
 
   // Form states
@@ -52,6 +47,8 @@ export default function Settings() {
     lastName: settings.profile.lastName,
     email: settings.profile.email,
   });
+
+  const [editableRates, setEditableRates] = useState<ExchangeRates>({ ...settings.exchangeRates });
 
   const [apiForm, setApiForm] = useState({
     accessKey: settings.apiCredentials.accessKey,
@@ -83,17 +80,22 @@ export default function Settings() {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 max-w-[1200px] mx-auto" data-testid="settings-page">
+      <div className="p-6 max-w-[1920px] mx-auto" data-testid="settings-page">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="mb-6"
         >
-          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your account and preferences
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-primary/10">
+              <MdSettingsIcon className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Settings</h1>
+              <p className="text-sm text-muted-foreground">Configure your profile, preferences, users, and API connections</p>
+            </div>
+          </div>
         </motion.div>
 
         <Tabs defaultValue="general" className="space-y-6">
@@ -114,7 +116,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
+                    <MdPerson className="h-5 w-5 text-primary" />
                     Profile Settings
                   </CardTitle>
                   <CardDescription>Manage your account information</CardDescription>
@@ -163,7 +165,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-primary" />
+                    <MdPublic className="h-5 w-5 text-primary" />
                     Display Preferences
                   </CardTitle>
                   <CardDescription>Customize your dashboard experience</CardDescription>
@@ -199,6 +201,106 @@ export default function Settings() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Display Language</Label>
+                    <Select value={settings.language} onValueChange={(value) => {
+                      updateLanguage(value as Language);
+                      if (value !== 'en') {
+                        toast({
+                          title: 'Language Updated',
+                          description: 'Translation powered by Google Translate',
+                        });
+                      }
+                    }}>
+                      <SelectTrigger className="w-[250px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="fr">French</SelectItem>
+                        <SelectItem value="ar">Arabic</SelectItem>
+                        <SelectItem value="zh">Chinese</SelectItem>
+                        <SelectItem value="pt">Portuguese</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <MdTranslate className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[11px] text-muted-foreground">Powered by Google Translate</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <MdRefresh className="h-5 w-5 text-primary" />
+                    Exchange Rates
+                  </CardTitle>
+                  <CardDescription>Configure custom currency exchange rates relative to USD</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {(Object.keys(currencyInfo) as Currency[]).map((code) => {
+                      const info = currencyInfo[code];
+                      const isBase = code === 'USD';
+                      return (
+                        <div
+                          key={code}
+                          className="flex items-center gap-3 p-3 rounded-lg border border-card-border bg-card/30"
+                        >
+                          <span className="text-xl">{info.flag}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium text-foreground">{code}</span>
+                              {isBase && (
+                                <>
+                                  <MdLock className="h-3 w-3 text-muted-foreground" />
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Base Currency</Badge>
+                                </>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground">{info.name}</span>
+                          </div>
+                          <Input
+                            type="number"
+                            step="any"
+                            className="w-[100px] text-right"
+                            value={isBase ? '1.00' : editableRates[code]}
+                            disabled={isBase}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val)) {
+                                setEditableRates((prev) => ({ ...prev, [code]: val }));
+                              }
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <Button onClick={() => updateExchangeRates(editableRates)}>
+                      <MdSave className="h-4 w-4 mr-2" />
+                      Save Rates
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        resetExchangeRates();
+                        setEditableRates({ ...defaultExchangeRates });
+                      }}
+                    >
+                      <MdRefresh className="h-4 w-4 mr-2" />
+                      Reset to Defaults
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -233,7 +335,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Key className="h-5 w-5 text-primary" />
+                    <MdVpnKey className="h-5 w-5 text-primary" />
                     Huawei Cloud API Credentials
                   </CardTitle>
                   <CardDescription>Connect to Huawei Cloud for live data</CardDescription>
@@ -241,7 +343,7 @@ export default function Settings() {
                 <CardContent className="space-y-4">
                   {settings.apiCredentials.isConnected && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      <MdCheckCircle className="h-5 w-5 text-emerald-500" />
                       <span className="text-sm text-emerald-600 dark:text-emerald-400">Connected to Huawei Cloud</span>
                       <Badge variant="secondary" className="ml-auto bg-emerald-500/10 text-emerald-500">Active</Badge>
                     </div>
@@ -270,7 +372,7 @@ export default function Settings() {
                   </div>
                   {settings.apiCredentials.isConnected ? (
                     <Button variant="destructive" onClick={disconnectApi}>
-                      <XCircle className="h-4 w-4 mr-2" />
+                      <MdCancel className="h-4 w-4 mr-2" />
                       Disconnect
                     </Button>
                   ) : (
@@ -280,7 +382,7 @@ export default function Settings() {
                     >
                       {isConnecting ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <MdSync className="h-4 w-4 mr-2 animate-spin" />
                           Connecting...
                         </>
                       ) : (
@@ -302,7 +404,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
+                    <MdShield className="h-5 w-5 text-primary" />
                     Security Settings
                   </CardTitle>
                   <CardDescription>Manage your account security</CardDescription>
@@ -334,7 +436,7 @@ export default function Settings() {
                       >
                         {isChangingPassword ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <MdSync className="h-4 w-4 mr-2 animate-spin" />
                             Updating...
                           </>
                         ) : (

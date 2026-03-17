@@ -139,11 +139,13 @@ export interface CostRecord {
 export interface Resource {
   id: string;
   tenantId: string;
+  vdcId: string;
   name: string;
   service: HuaweiService;
   region: HuaweiRegion;
   type: string;
-  status: 'running' | 'stopped' | 'terminated';
+  status: 'running' | 'stopped' | 'error';
+  tags: string[];
   cpuUtilization: number;
   memoryUtilization: number;
   networkUtilization: number;
@@ -151,6 +153,46 @@ export interface Resource {
   monthlyCost: number;
   createdAt: string;
 }
+
+// VDC hierarchy node
+export interface VDCNode {
+  id: string;
+  name: string;
+  tenantId: string;
+  level: 'vdc1' | 'vdc2' | 'vdc3' | 'vdc4' | 'vdc5';
+  spend: number;
+  budget: number;
+  resources: number;
+  trend: number;
+  children?: VDCNode[];
+}
+
+// Service dependency mapping
+export const serviceDependencies: Record<HuaweiService, HuaweiService[]> = {
+  ECS: ['EVS', 'VPC', 'ELB'],
+  RDS: ['EVS', 'VPC'],
+  OBS: [],
+  EVS: [],
+  ELB: ['VPC', 'ECS'],
+  VPC: ['NAT'],
+  CDN: ['OBS', 'ELB'],
+  NAT: ['VPC'],
+  WAF: ['ELB', 'CDN'],
+  DCS: ['VPC'],
+  DDS: ['EVS', 'VPC'],
+  GaussDB: ['EVS', 'VPC'],
+  FunctionGraph: ['OBS', 'APIG', 'SMN'],
+  APIG: ['VPC', 'ELB'],
+  SMN: [],
+  CTS: ['OBS'],
+  CCE: ['VPC', 'EVS', 'ELB', 'SWR'],
+  SWR: ['OBS'],
+  ModelArts: ['OBS', 'EVS', 'VPC'],
+  DWS: ['EVS', 'VPC'],
+  CSS: ['EVS', 'VPC'],
+  MRS: ['OBS', 'EVS', 'VPC'],
+  DLI: ['OBS'],
+};
 
 // Recommendation type
 export type RecommendationType = 

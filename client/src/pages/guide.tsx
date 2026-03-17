@@ -1,3 +1,4 @@
+import { MdArrowDownward, MdApartment, MdCloud, MdCompareArrows, MdDns, MdExpandMore, MdHelpOutline, MdAccountTree, MdInventory2, MdLan, MdMenuBook, MdStorage } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,30 +8,21 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import {
-  Server,
-  Building2,
-  Layers,
-  Box,
-  HelpCircle,
-  Database,
-  Cloud,
-  ArrowDown,
-  ChevronDown,
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const TenantBuildingIcon = ({ className }: { className?: string }) => <MdApartment className={className} />;
+
 // Type styling configuration
-const typeConfig: Record<string, { bg: string; border: string; text: string; icon: typeof Cloud }> = {
-  root: { bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-400 dark:border-red-600', text: 'text-red-700 dark:text-red-400', icon: Cloud },
-  zone: { bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-400 dark:border-blue-600', text: 'text-blue-700 dark:text-blue-400', icon: Server },
-  tenant: { bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-400 dark:border-purple-600', text: 'text-purple-700 dark:text-purple-400', icon: Building2 },
-  vdc1: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-400 dark:border-green-600', text: 'text-green-700 dark:text-green-400', icon: Layers },
-  vdc2: { bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-400 dark:border-amber-600', text: 'text-amber-700 dark:text-amber-400', icon: Layers },
-  vdc3: { bg: 'bg-cyan-50 dark:bg-cyan-950/30', border: 'border-cyan-400 dark:border-cyan-600', text: 'text-cyan-700 dark:text-cyan-400', icon: Layers },
-  vdc4: { bg: 'bg-pink-50 dark:bg-pink-950/30', border: 'border-pink-400 dark:border-pink-600', text: 'text-pink-700 dark:text-pink-400', icon: Layers },
-  vdc5: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-400 dark:border-indigo-600', text: 'text-indigo-700 dark:text-indigo-400', icon: Box },
-  resource: { bg: 'bg-slate-50 dark:bg-slate-950/30', border: 'border-slate-400 dark:border-slate-600', text: 'text-slate-700 dark:text-slate-400', icon: Database },
+const typeConfig: Record<string, { bg: string; border: string; text: string; icon: React.FC<{ className?: string }> }> = {
+  root: { bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-400 dark:border-red-600', text: 'text-red-700 dark:text-red-400', icon: MdCloud },
+  zone: { bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-400 dark:border-blue-600', text: 'text-blue-700 dark:text-blue-400', icon: MdDns },
+  tenant: { bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-400 dark:border-purple-600', text: 'text-purple-700 dark:text-purple-400', icon: TenantBuildingIcon },
+  vdc1: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-400 dark:border-green-600', text: 'text-green-700 dark:text-green-400', icon: MdLan },
+  vdc2: { bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-400 dark:border-amber-600', text: 'text-amber-700 dark:text-amber-400', icon: MdLan },
+  vdc3: { bg: 'bg-cyan-50 dark:bg-cyan-950/30', border: 'border-cyan-400 dark:border-cyan-600', text: 'text-cyan-700 dark:text-cyan-400', icon: MdLan },
+  vdc4: { bg: 'bg-pink-50 dark:bg-pink-950/30', border: 'border-pink-400 dark:border-pink-600', text: 'text-pink-700 dark:text-pink-400', icon: MdLan },
+  vdc5: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-400 dark:border-indigo-600', text: 'text-indigo-700 dark:text-indigo-400', icon: MdInventory2 },
+  resource: { bg: 'bg-slate-50 dark:bg-slate-950/30', border: 'border-slate-400 dark:border-slate-600', text: 'text-slate-700 dark:text-slate-400', icon: MdStorage },
 };
 
 // Simple CSS-based organogram - no dynamic SVG
@@ -71,7 +63,7 @@ function Organogram() {
       {label && (
         <>
           <div className="flex items-center gap-1 py-0.5 px-2 rounded bg-muted/50 text-[9px] text-muted-foreground font-medium">
-            <ArrowDown className="h-2.5 w-2.5" />
+            <MdArrowDownward className="h-2.5 w-2.5" />
             {label}
           </div>
           <div className="w-0.5 bg-border mx-auto h-2" />
@@ -135,7 +127,7 @@ function Organogram() {
           <div className="flex flex-col items-center">
             <div className="w-0.5 bg-border h-2" />
             <div className="flex items-center gap-1 py-0.5 px-2 rounded bg-purple-100 dark:bg-purple-950/50 text-[9px] text-purple-700 dark:text-purple-400 font-medium border border-purple-200 dark:border-purple-800">
-              <ChevronDown className="h-2.5 w-2.5" />
+              <MdExpandMore className="h-2.5 w-2.5" />
               contains TENANTS
             </div>
             <div className="w-0.5 bg-border h-2" />
@@ -208,6 +200,49 @@ function Organogram() {
       <p className="text-xs text-muted-foreground">
         Note: Resources (ECS, EVS, VPC, etc.) can be deployed at ANY VDC level (L1-L5), not just the bottom. The diagram shows them at the end for simplicity.
       </p>
+
+      {/* Cross-Tenant Structural Comparison */}
+      <div className="mt-6 rounded-lg border border-card-border bg-card/50 backdrop-blur-sm p-4">
+        <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+          <MdCompareArrows className="h-4 w-4 text-primary" />
+          Cross-Tenant Structural Comparison
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Tenant Name</th>
+                <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Industry</th>
+                <th className="text-center py-2 px-3 font-semibold text-muted-foreground">VDC Depth</th>
+                <th className="text-center py-2 px-3 font-semibold text-muted-foreground">Total Services</th>
+                <th className="text-center py-2 px-3 font-semibold text-muted-foreground">Has L5 VDCs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { name: 'Bank Corp', industry: 'Financial Services', depth: 5, services: 3, hasL5: true },
+                { name: 'Telco Inc', industry: 'Telecommunications', depth: 3, services: 3, hasL5: false },
+                { name: 'Gov Agency', industry: 'Government', depth: 2, services: 3, hasL5: false },
+                { name: 'Retail Co', industry: 'E-Commerce', depth: 4, services: 3, hasL5: false },
+              ].map((t) => (
+                <tr key={t.name} className="border-b border-border/50 hover:bg-muted/30">
+                  <td className="py-2 px-3 font-medium">{t.name}</td>
+                  <td className="py-2 px-3 text-muted-foreground">{t.industry}</td>
+                  <td className="py-2 px-3 text-center">
+                    <Badge variant="secondary">{t.depth}</Badge>
+                  </td>
+                  <td className="py-2 px-3 text-center">{t.services}</td>
+                  <td className="py-2 px-3 text-center">
+                    <Badge variant={t.hasL5 ? 'default' : 'secondary'}>
+                      {t.hasL5 ? 'Yes' : 'No'}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
@@ -260,17 +295,22 @@ export default function Guide() {
     <ScrollArea className="h-full">
       <div className="p-6 max-w-[1600px] mx-auto" data-testid="guide-page">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Huawei Cloud Stack Architecture Guide</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Reference diagram showing the hierarchy from Root to Resources in Cloud Stack 8.x
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-primary/10">
+              <MdMenuBook className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">HCS Architecture Guide</h1>
+              <p className="text-sm text-muted-foreground">Understand the Huawei Cloud Stack hierarchy, VDC levels, and resource organization</p>
+            </div>
+          </div>
         </div>
 
         {/* Architecture Organogram */}
         <Card className="bg-card/50 backdrop-blur-sm border-card-border mb-6">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Layers className="h-5 w-5 text-primary" />
+              <MdAccountTree className="h-5 w-5 text-primary" />
               Architecture Hierarchy
               <Badge variant="secondary" className="ml-2">Cloud Stack 8.x</Badge>
             </CardTitle>
@@ -284,7 +324,7 @@ export default function Guide() {
         <Card className="bg-card/50 backdrop-blur-sm border-card-border mb-6">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Layers className="h-5 w-5 text-primary" />
+              <MdAccountTree className="h-5 w-5 text-primary" />
               Hierarchy Summary
             </CardTitle>
           </CardHeader>
@@ -341,7 +381,7 @@ export default function Guide() {
         <Card className="bg-card/50 backdrop-blur-sm border-card-border">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-primary" />
+              <MdHelpOutline className="h-5 w-5 text-primary" />
               Frequently Asked Questions
               <Badge variant="secondary" className="ml-2">{faqs.length} Questions</Badge>
             </CardTitle>

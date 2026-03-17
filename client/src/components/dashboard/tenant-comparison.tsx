@@ -1,3 +1,4 @@
+import { MdArrowForward, MdApartment, MdFlashOn, MdLightbulb, MdPeople, MdTrendingUp } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,14 +7,6 @@ import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/fin
 import { generateTenantSummaries, mockTenants } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
 import { useMemo } from 'react';
-import { 
-  Users,
-  ArrowRight,
-  Building2,
-  TrendingUp,
-  Lightbulb,
-  Zap,
-} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
@@ -35,7 +28,7 @@ export function TenantComparison() {
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
           <div>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
+              <MdPeople className="h-5 w-5 text-primary" />
               Tenant Comparison
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
@@ -45,7 +38,7 @@ export function TenantComparison() {
           <Link href="/tenants">
             <Button variant="outline" size="sm" data-testid="button-view-all-tenants">
               View All
-              <ArrowRight className="h-4 w-4 ml-1" />
+              <MdArrowForward className="h-4 w-4 ml-1" />
             </Button>
           </Link>
         </CardHeader>
@@ -67,7 +60,7 @@ export function TenantComparison() {
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Building2 className="h-5 w-5 text-primary" />
+                        <MdApartment className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0">
                         <h4 className="text-sm font-medium truncate">{summary.tenant.name}</h4>
@@ -98,7 +91,7 @@ export function TenantComparison() {
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
-                        <Zap className={cn(
+                        <MdFlashOn className={cn(
                           "h-3.5 w-3.5",
                           summary.efficiencyScore >= 80 ? "text-emerald-500" :
                           summary.efficiencyScore >= 60 ? "text-amber-500" : "text-destructive"
@@ -106,7 +99,7 @@ export function TenantComparison() {
                         <span className="text-xs font-mono">{summary.efficiencyScore}%</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                        <MdLightbulb className="h-3.5 w-3.5 text-amber-500" />
                         <span className="text-xs font-mono">{summary.recommendationCount}</span>
                       </div>
                     </div>

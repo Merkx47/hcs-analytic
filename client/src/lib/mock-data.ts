@@ -12,6 +12,7 @@ import type {
   HuaweiRegion,
   RecommendationType,
   RecommendationImpact,
+  VDCNode,
 } from '@shared/schema';
 
 // =====================================================
@@ -781,6 +782,204 @@ export function generateRecommendations(tenantId: string | 'all'): Recommendatio
   return recommendations;
 }
 
+// =====================================================
+// VDC HIERARCHY GENERATION
+// Deterministic VDC tree for each tenant
+// =====================================================
+
+// Generate a deterministic VDC hierarchy for a tenant
+// Uses seeded random for consistency across renders
+export function generateVDCHierarchy(tenantId: string, tenantBudget: number): VDCNode {
+  const tenantIndex = mockTenants.findIndex(t => t.id === tenantId);
+  const seed = (tenantIndex + 1) * 137;
+
+  const l1Budget = tenantBudget;
+  const l1SpendRatio = 0.7 + seededRandom(seed) * 0.2;
+  const l1Spend = l1Budget * l1SpendRatio;
+  const resourceCount = tenantResourceCounts[tenantId] || 80;
+
+  // L2 divisions - deterministic split
+  const itDivisionPct = 0.45;
+  const operationsPct = 0.35;
+  const financePct = 0.20;
+
+  const itSpend = l1Spend * itDivisionPct;
+  const itResources = Math.floor(resourceCount * itDivisionPct);
+  const opsSpend = l1Spend * operationsPct;
+  const opsResources = Math.floor(resourceCount * operationsPct);
+  const finSpend = l1Spend * financePct;
+  const finResources = resourceCount - itResources - opsResources;
+
+  // L3 under IT Division
+  const infraPct = 0.55;
+  const devPct = 0.45;
+  const infraSpend = itSpend * infraPct;
+  const infraResources = Math.floor(itResources * infraPct);
+  const devSpend = itSpend * devPct;
+  const devResources = itResources - infraResources;
+
+  // L4 under Infrastructure
+  const networkPct = 0.55;
+  const storagePct = 0.45;
+  const networkSpend = infraSpend * networkPct;
+  const networkResources = Math.floor(infraResources * networkPct);
+  const storageSpend = infraSpend * storagePct;
+  const storageResources = infraResources - networkResources;
+
+  // L3 under Operations - Production is the only child
+  const prodSpend = opsSpend;
+  const prodResources = opsResources;
+
+  // Deterministic trends using seeded random
+  const trend = (s: number) => {
+    const v = seededRandom(s);
+    return v > 0.5 ? seededRandom(s + 1) * 15 : -seededRandom(s + 2) * 10;
+  };
+
+  return {
+    id: `${tenantId}-vdc1`,
+    name: 'Enterprise VDC',
+    tenantId,
+    level: 'vdc1',
+    spend: l1Spend,
+    budget: l1Budget,
+    resources: resourceCount,
+    trend: Math.round(trend(seed + 10) * 10) / 10,
+    children: [
+      {
+        id: `${tenantId}-vdc2-1`,
+        name: 'IT Division',
+        tenantId,
+        level: 'vdc2',
+        spend: itSpend,
+        budget: l1Budget * itDivisionPct,
+        resources: itResources,
+        trend: Math.round(trend(seed + 20) * 10) / 10,
+        children: [
+          {
+            id: `${tenantId}-vdc3-1`,
+            name: 'Infrastructure',
+            tenantId,
+            level: 'vdc3',
+            spend: infraSpend,
+            budget: l1Budget * itDivisionPct * infraPct,
+            resources: infraResources,
+            trend: Math.round(trend(seed + 30) * 10) / 10,
+            children: [
+              {
+                id: `${tenantId}-vdc4-1`,
+                name: 'Network Team',
+                tenantId,
+                level: 'vdc4',
+                spend: networkSpend,
+                budget: l1Budget * itDivisionPct * infraPct * networkPct,
+                resources: networkResources,
+                trend: Math.round(trend(seed + 40) * 10) / 10,
+              },
+              {
+                id: `${tenantId}-vdc4-2`,
+                name: 'Storage Team',
+                tenantId,
+                level: 'vdc4',
+                spend: storageSpend,
+                budget: l1Budget * itDivisionPct * infraPct * storagePct,
+                resources: storageResources,
+                trend: Math.round(trend(seed + 50) * 10) / 10,
+              },
+            ],
+          },
+          {
+            id: `${tenantId}-vdc3-2`,
+            name: 'Development',
+            tenantId,
+            level: 'vdc3',
+            spend: devSpend,
+            budget: l1Budget * itDivisionPct * devPct,
+            resources: devResources,
+            trend: Math.round(trend(seed + 60) * 10) / 10,
+          },
+        ],
+      },
+      {
+        id: `${tenantId}-vdc2-2`,
+        name: 'Operations',
+        tenantId,
+        level: 'vdc2',
+        spend: opsSpend,
+        budget: l1Budget * operationsPct,
+        resources: opsResources,
+        trend: Math.round(trend(seed + 70) * 10) / 10,
+        children: [
+          {
+            id: `${tenantId}-vdc3-3`,
+            name: 'Production',
+            tenantId,
+            level: 'vdc3',
+            spend: prodSpend,
+            budget: l1Budget * operationsPct,
+            resources: prodResources,
+            trend: Math.round(trend(seed + 80) * 10) / 10,
+          },
+        ],
+      },
+      {
+        id: `${tenantId}-vdc2-3`,
+        name: 'Finance',
+        tenantId,
+        level: 'vdc2',
+        spend: finSpend,
+        budget: l1Budget * financePct,
+        resources: finResources,
+        trend: Math.round(trend(seed + 90) * 10) / 10,
+      },
+    ],
+  };
+}
+
+// Flatten VDC tree into a list
+export function flattenVDCTree(node: VDCNode, result: VDCNode[] = []): VDCNode[] {
+  result.push(node);
+  if (node.children) {
+    node.children.forEach(child => flattenVDCTree(child, result));
+  }
+  return result;
+}
+
+// Get all leaf VDC IDs for a given VDC (including itself if it's a leaf)
+export function getLeafVDCIds(node: VDCNode): string[] {
+  if (!node.children || node.children.length === 0) {
+    return [node.id];
+  }
+  return node.children.flatMap(child => getLeafVDCIds(child));
+}
+
+// Get all VDC IDs under a node (including itself)
+export function getAllVDCIds(node: VDCNode): string[] {
+  const ids = [node.id];
+  if (node.children) {
+    node.children.forEach(child => {
+      ids.push(...getAllVDCIds(child));
+    });
+  }
+  return ids;
+}
+
+// Generate all VDC hierarchies for given tenants
+export function generateAllVDCHierarchies(tenantId: string | 'all'): VDCNode[] {
+  const tenantsToProcess = tenantId === 'all'
+    ? mockTenants
+    : mockTenants.filter(t => t.id === tenantId);
+
+  return tenantsToProcess.map(t => generateVDCHierarchy(t.id, t.budget));
+}
+
+// =====================================================
+// RESOURCE GENERATION
+// =====================================================
+
+// Available tags for resources
+const allTags = ['production', 'staging', 'critical', 'auto-scaled', 'backup', 'monitoring', 'compliance', 'dev', 'test'];
+
 // Generate resources with VARIED utilization data
 // Creates a realistic distribution: some underutilized, some optimal, some high
 export function generateResources(tenantId: string | 'all'): Resource[] {
@@ -791,28 +990,27 @@ export function generateResources(tenantId: string | 'all'): Resource[] {
     : mockTenants.filter(t => t.id === tenantId);
 
   // Predefined utilization patterns for variety
-  // Each pattern represents a resource archetype
   const utilizationPatterns = [
-    { cpu: 15, mem: 22, net: 8, disk: 45, label: 'underutilized' },    // Idle/waste candidate
-    { cpu: 12, mem: 18, net: 5, disk: 35, label: 'underutilized' },    // Very low usage
-    { cpu: 25, mem: 30, net: 15, disk: 50, label: 'low' },             // Low usage
-    { cpu: 28, mem: 35, net: 20, disk: 55, label: 'low' },             // Low-medium
-    { cpu: 38, mem: 45, net: 30, disk: 60, label: 'moderate' },        // Moderate
-    { cpu: 45, mem: 52, net: 35, disk: 65, label: 'moderate' },        // Moderate
-    { cpu: 55, mem: 58, net: 42, disk: 70, label: 'healthy' },         // Healthy
-    { cpu: 62, mem: 65, net: 48, disk: 72, label: 'healthy' },         // Healthy
-    { cpu: 68, mem: 72, net: 55, disk: 75, label: 'optimal' },         // Optimal
-    { cpu: 75, mem: 78, net: 60, disk: 78, label: 'optimal' },         // Optimal
-    { cpu: 82, mem: 85, net: 65, disk: 82, label: 'high' },            // High usage
-    { cpu: 88, mem: 90, net: 72, disk: 85, label: 'high' },            // High usage
-    { cpu: 92, mem: 88, net: 78, disk: 88, label: 'critical' },        // Near capacity
-    { cpu: 95, mem: 92, net: 82, disk: 90, label: 'critical' },        // Critical
-    { cpu: 8, mem: 12, net: 3, disk: 25, label: 'idle' },              // Nearly idle
-    { cpu: 42, mem: 48, net: 28, disk: 58, label: 'moderate' },        // Moderate
-    { cpu: 72, mem: 68, net: 52, disk: 76, label: 'healthy' },         // Healthy variant
-    { cpu: 35, mem: 40, net: 25, disk: 55, label: 'low-moderate' },    // Low-moderate
-    { cpu: 58, mem: 62, net: 45, disk: 68, label: 'healthy' },         // Healthy variant
-    { cpu: 85, mem: 82, net: 68, disk: 80, label: 'high' },            // High variant
+    { cpu: 15, mem: 22, net: 8, disk: 45, label: 'underutilized' },
+    { cpu: 12, mem: 18, net: 5, disk: 35, label: 'underutilized' },
+    { cpu: 25, mem: 30, net: 15, disk: 50, label: 'low' },
+    { cpu: 28, mem: 35, net: 20, disk: 55, label: 'low' },
+    { cpu: 38, mem: 45, net: 30, disk: 60, label: 'moderate' },
+    { cpu: 45, mem: 52, net: 35, disk: 65, label: 'moderate' },
+    { cpu: 55, mem: 58, net: 42, disk: 70, label: 'healthy' },
+    { cpu: 62, mem: 65, net: 48, disk: 72, label: 'healthy' },
+    { cpu: 68, mem: 72, net: 55, disk: 75, label: 'optimal' },
+    { cpu: 75, mem: 78, net: 60, disk: 78, label: 'optimal' },
+    { cpu: 82, mem: 85, net: 65, disk: 82, label: 'high' },
+    { cpu: 88, mem: 90, net: 72, disk: 85, label: 'high' },
+    { cpu: 92, mem: 88, net: 78, disk: 88, label: 'critical' },
+    { cpu: 95, mem: 92, net: 82, disk: 90, label: 'critical' },
+    { cpu: 8, mem: 12, net: 3, disk: 25, label: 'idle' },
+    { cpu: 42, mem: 48, net: 28, disk: 58, label: 'moderate' },
+    { cpu: 72, mem: 68, net: 52, disk: 76, label: 'healthy' },
+    { cpu: 35, mem: 40, net: 25, disk: 55, label: 'low-moderate' },
+    { cpu: 58, mem: 62, net: 45, disk: 68, label: 'healthy' },
+    { cpu: 85, mem: 82, net: 68, disk: 80, label: 'high' },
   ];
 
   tenantsToProcess.forEach(tenant => {
@@ -830,6 +1028,11 @@ export function generateResources(tenantId: string | 'all'): Resource[] {
     // Tenant index affects pattern distribution
     const tenantIndex = mockTenants.findIndex(t => t.id === tenant.id);
 
+    // Get leaf VDC IDs for this tenant's hierarchy
+    const hierarchy = generateVDCHierarchy(tenant.id, tenant.budget);
+    const leafVDCs = flattenVDCTree(hierarchy).filter(v => !v.children || v.children.length === 0);
+    const leafVDCIds = leafVDCs.map(v => v.id);
+
     for (let i = 0; i < resourceCount; i++) {
       // Deterministic service/region selection based on index
       const serviceIndex = i % activeServices.length;
@@ -839,7 +1042,6 @@ export function generateResources(tenantId: string | 'all'): Resource[] {
       const region = activeRegions[regionIndex];
 
       // Select utilization pattern based on resource index and tenant
-      // This creates varied but deterministic utilization across resources
       const patternIndex = (i * 7 + tenantIndex * 3) % utilizationPatterns.length;
       const basePattern = utilizationPatterns[patternIndex];
 
@@ -859,14 +1061,42 @@ export function generateResources(tenantId: string | 'all'): Resource[] {
       const envTypes = ['prod', 'staging', 'dev', 'test', 'qa'];
       const envIndex = (i + tenantIndex) % 5;
 
+      // Assign VDC deterministically - distribute resources across leaf VDCs
+      const vdcIndex = i % leafVDCIds.length;
+      const vdcId = leafVDCIds[vdcIndex];
+
+      // Generate 1-3 tags deterministically
+      const tagSeed = (i * 13 + tenantIndex * 7);
+      const tagCount = 1 + (tagSeed % 3); // 1-3 tags
+      const tags: string[] = [];
+      for (let t = 0; t < tagCount; t++) {
+        const tagIdx = (tagSeed + t * 5) % allTags.length;
+        if (!tags.includes(allTags[tagIdx])) {
+          tags.push(allTags[tagIdx]);
+        }
+      }
+
+      // Status: ~3% error, rest split between running and stopped based on utilization
+      let status: 'running' | 'stopped' | 'error';
+      const statusSeed = seededRandom((i + 1) * 31 + tenantIndex * 97);
+      if (statusSeed < 0.03) {
+        status = 'error';
+      } else if (cpuUtil < 10 && i % 8 === 7) {
+        status = 'stopped';
+      } else {
+        status = 'running';
+      }
+
       resources.push({
         id: `${tenant.id}-resource-${i + 1}`,
         tenantId: tenant.id,
+        vdcId,
         name: `${service.toLowerCase()}-${envTypes[envIndex]}-${String(i + 1).padStart(2, '0')}`,
         service,
         region,
         type: service === 'ECS' ? 's6.xlarge.4' : service === 'RDS' ? 'mysql.x1.large.4' : 'standard',
-        status: cpuUtil < 10 && i % 8 === 7 ? 'stopped' : 'running', // Stopped if very low util and specific index
+        status,
+        tags,
         cpuUtilization: Math.round(cpuUtil),
         memoryUtilization: Math.round(memUtil),
         networkUtilization: Math.round(netUtil),

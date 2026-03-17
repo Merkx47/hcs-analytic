@@ -1,7 +1,7 @@
-import { useEffect, useState, ReactNode } from 'react';
-import { Globe, Check, ChevronDown } from 'lucide-react';
+import { MdCheck, MdExpandMore, MdPublic, MdSync } from 'react-icons/md';
+import { useEffect, useState, useCallback, ReactNode } from 'react';
 
-// Supported languages for Google Translate (without native African languages as requested)
+// Supported languages for Google Translate
 export const languages = [
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'fr', name: 'French', nativeName: 'Français' },
@@ -27,13 +27,13 @@ declare global {
     googleTranslateElementInit: () => void;
     google: {
       translate: {
-        TranslateElement: new (options: {
-          pageLanguage: string;
-          includedLanguages: string;
-          layout: number;
-          autoDisplay: boolean;
-        }, elementId: string) => void;
         TranslateElement: {
+          new (options: {
+            pageLanguage: string;
+            includedLanguages: string;
+            layout: number;
+            autoDisplay: boolean;
+          }, elementId: string): void;
           InlineLayout: {
             SIMPLE: number;
             HORIZONTAL: number;
@@ -42,20 +42,31 @@ declare global {
         };
       };
     };
+    _googleTranslateReady?: boolean;
   }
+}
+
+function getGoogleTranslateSelect(): HTMLSelectElement | null {
+  return document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+}
+
+function triggerTranslate(langCode: string) {
+  const select = getGoogleTranslateSelect();
+  if (select) {
+    select.value = langCode;
+    select.dispatchEvent(new Event('change'));
+    return true;
+  }
+  return false;
 }
 
 // Provider that initializes Google Translate
 export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
-    // Check if script is already loaded
-    if (document.getElementById('google-translate-script')) {
-      return;
-    }
+    if (document.getElementById('google-translate-script')) return;
 
-    // Create the Google Translate initialization function
     window.googleTranslateElementInit = () => {
-      if (window.google && window.google.translate) {
+      if (window.google?.translate) {
         new window.google.translate.TranslateElement(
           {
             pageLanguage: 'en',
@@ -65,23 +76,28 @@ export function I18nProvider({ children }: { children: ReactNode }) {
           },
           'google_translate_element'
         );
+        window._googleTranslateReady = true;
+
+        // Auto-apply saved language after Google Translate initializes
+        const saved = localStorage.getItem('finops_language');
+        if (saved && saved !== 'en') {
+          // Small delay to let Google Translate fully render
+          setTimeout(() => triggerTranslate(saved), 300);
+        }
       }
     };
 
-    // Load Google Translate script
     const script = document.createElement('script');
     script.id = 'google-translate-script';
     script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
     script.async = true;
     document.body.appendChild(script);
 
-    // Add CSS to hide Google Translate branding
     const style = document.createElement('style');
     style.id = 'google-translate-style';
     style.textContent = `
-      /* Hide Google Translate banner and branding */
       .goog-te-banner-frame,
-      .skiptranslate,
+      .skiptranslate:not(#google_translate_element),
       #goog-gt-tt,
       .goog-te-balloon-frame,
       .goog-tooltip,
@@ -96,20 +112,17 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       .VIpgJd-ZVi9od-aZ2wEe-wOHMyf {
         display: none !important;
       }
-
-      body {
-        top: 0 !important;
-      }
-
-      /* Hide the default Google element */
+      body { top: 0 !important; }
       #google_translate_element {
-        display: none !important;
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        visibility: hidden;
       }
     `;
     document.head.appendChild(style);
 
     return () => {
-      // Cleanup on unmount
       const scriptEl = document.getElementById('google-translate-script');
       const styleEl = document.getElementById('google-translate-style');
       if (scriptEl) scriptEl.remove();
@@ -119,8 +132,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   return (
     <>
-      {/* Hidden container for Google Translate initialization */}
-      <div id="google_translate_element" style={{ display: 'none' }} />
+      <div id="google_translate_element" />
       {children}
     </>
   );
@@ -128,87 +140,91 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 // Custom language selector that triggers Google Translate
 export function LanguageSelector() {
-  const [currentLang, setCurrentLang] = useState('en');
+  const [currentLang, setCurrentLang] = useState(() => localStorage.getItem('finops_language') || 'en');
   const [isOpen, setIsOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
-  // Function to change language using Google Translate
-  const changeLanguage = (langCode: string) => {
+  const changeLanguage = useCallback((langCode: string) => {
     setIsOpen(false);
+    if (langCode === currentLang) return;
+
     setCurrentLang(langCode);
     localStorage.setItem('finops_language', langCode);
+    setSwitching(true);
 
-    // Find the Google Translate dropdown and change it
-    const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-    if (select) {
-      select.value = langCode;
-      select.dispatchEvent(new Event('change'));
-    } else {
-      // If Google Translate hasn't loaded yet, try setting a cookie
-      document.cookie = `googtrans=/en/${langCode}; path=/`;
-      document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}`;
-      // Reload to apply translation
-      window.location.reload();
+    if (langCode === 'en') {
+      // Reset: clear cookie and switch Google Translate back to English
+      document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC';
+      document.cookie = `googtrans=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+      triggerTranslate('en');
+      setTimeout(() => setSwitching(false), 600);
+      return;
     }
-  };
 
-  // Initialize from saved preference
-  useEffect(() => {
-    const saved = localStorage.getItem('finops_language');
-    if (saved) {
-      setCurrentLang(saved);
-      // Wait for Google Translate to load, then set the language
-      const timer = setTimeout(() => {
-        const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-        if (select && select.value !== saved) {
-          select.value = saved;
-          select.dispatchEvent(new Event('change'));
-        }
-      }, 2000);
-      return () => clearTimeout(timer);
+    // Set cookies for Google Translate
+    document.cookie = `googtrans=/en/${langCode}; path=/`;
+    document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}`;
+
+    // Try immediately
+    if (triggerTranslate(langCode)) {
+      setTimeout(() => setSwitching(false), 600);
+      return;
     }
-  }, []);
 
-  // Close dropdown when clicking outside
+    // If not ready, poll until it is
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (triggerTranslate(langCode) || attempts > 20) {
+        clearInterval(interval);
+        setSwitching(false);
+      }
+    }, 300);
+  }, [currentLang]);
+
+  // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.lang-selector-container')) {
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.lang-selector-container')) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
   }, []);
 
   const currentLanguage = languages.find(l => l.code === currentLang) || languages[0];
 
   return (
     <div className="relative lang-selector-container">
-      {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-border bg-background/50 hover:bg-accent transition-all duration-200"
         aria-label="Select language"
         aria-expanded={isOpen}
         data-testid="language-selector"
+        disabled={switching}
       >
-        <Globe className="h-4 w-4 text-muted-foreground" />
-        <span className="hidden sm:inline text-foreground">{currentLanguage.nativeName}</span>
-        <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        {switching ? (
+          <MdSync className="h-4 w-4 text-muted-foreground animate-spin" />
+        ) : (
+          <MdPublic className="h-4 w-4 text-muted-foreground" />
+        )}
+        <span className="hidden sm:inline text-foreground notranslate">{currentLanguage.nativeName}</span>
+        <MdExpandMore className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-52 py-2 bg-popover border border-popover-border rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="px-3 py-2 border-b border-border">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Select Language</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider notranslate">Select Language</p>
           </div>
           <div className="max-h-64 overflow-y-auto py-1">
             {languages.map((lang) => (
               <button
                 key={lang.code}
                 onClick={() => changeLanguage(lang.code)}
-                className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors duration-150 ${
+                className={`notranslate w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors duration-150 ${
                   currentLang === lang.code
                     ? 'bg-primary/10 text-primary font-medium'
                     : 'hover:bg-accent text-foreground'
@@ -217,13 +233,13 @@ export function LanguageSelector() {
                 <span className="flex-1 text-left">{lang.nativeName}</span>
                 <span className="text-xs text-muted-foreground">{lang.name}</span>
                 {currentLang === lang.code && (
-                  <Check className="h-4 w-4 text-primary" />
+                  <MdCheck className="h-4 w-4 text-primary" />
                 )}
               </button>
             ))}
           </div>
           <div className="px-3 py-2 border-t border-border">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <p className="text-xs text-muted-foreground flex items-center gap-1 notranslate">
               <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
               </svg>

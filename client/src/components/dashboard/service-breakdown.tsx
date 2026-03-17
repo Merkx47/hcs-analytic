@@ -1,3 +1,4 @@
+import { MdArrowForward, MdLayers, MdTrendingDown, MdTrendingUp } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,12 +13,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Layers,
-  ArrowRight,
-} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -64,7 +59,7 @@ export function ServiceBreakdownChart() {
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
           <div>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Layers className="h-5 w-5 text-primary" />
+              <MdLayers className="h-5 w-5 text-primary" />
               Service Breakdown
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">Top 8 services by cost</p>
@@ -152,7 +147,7 @@ export function ServiceBreakdownTable() {
           <CardTitle className="text-lg font-semibold">All Services</CardTitle>
           <Button variant="ghost" size="sm" data-testid="button-view-all-services">
             View All
-            <ArrowRight className="h-4 w-4 ml-1" />
+            <MdArrowForward className="h-4 w-4 ml-1" />
           </Button>
         </CardHeader>
         <CardContent className="p-0">
@@ -224,7 +219,7 @@ export function ServiceBreakdownTable() {
                           item.trend > 0 ? "text-destructive" : item.trend < 0 ? "text-emerald-500" : ""
                         )}
                       >
-                        {item.trend > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : item.trend < 0 ? <TrendingDown className="h-3 w-3 mr-1" /> : null}
+                        {item.trend > 0 ? <MdTrendingUp className="h-3 w-3 mr-1" /> : item.trend < 0 ? <MdTrendingDown className="h-3 w-3 mr-1" /> : null}
                         {item.trend > 0 ? '+' : ''}{item.trend}%
                       </Badge>
                     </td>

@@ -1,3 +1,4 @@
+import { MdAccountTree, MdArrowForward, MdDns, MdMemory, MdShowChart } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,14 +7,6 @@ import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
 import { generateResources } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
 import { useMemo } from 'react';
-import { 
-  Activity,
-  ArrowRight,
-  Cpu,
-  MemoryStick,
-  HardDrive,
-  Network,
-} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
@@ -55,7 +48,7 @@ export function ResourceHeatmap() {
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
           <div>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
+              <MdShowChart className="h-5 w-5 text-primary" />
               Resource Utilization
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
@@ -65,7 +58,7 @@ export function ResourceHeatmap() {
           <Link href="/resources">
             <Button variant="outline" size="sm" data-testid="button-view-all-resources">
               View All
-              <ArrowRight className="h-4 w-4 ml-1" />
+              <MdArrowForward className="h-4 w-4 ml-1" />
             </Button>
           </Link>
         </CardHeader>
@@ -122,19 +115,19 @@ export function ResourceHeatmap() {
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="flex items-center gap-1">
-                        <Cpu className="h-3 w-3" />
+                        <MdMemory className="h-3 w-3" />
                         <span>CPU: {resource.cpuUtilization}%</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <MemoryStick className="h-3 w-3" />
+                        <MdMemory className="h-3 w-3" />
                         <span>Mem: {resource.memoryUtilization}%</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Network className="h-3 w-3" />
+                        <MdAccountTree className="h-3 w-3" />
                         <span>Net: {resource.networkUtilization}%</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <HardDrive className="h-3 w-3" />
+                        <MdDns className="h-3 w-3" />
                         <span>Disk: {resource.diskUtilization}%</span>
                       </div>
                     </div>
@@ -151,28 +144,28 @@ export function ResourceHeatmap() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-4 border-t border-border">
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <Cpu className="h-4 w-4 text-blue-500" />
+                <MdMemory className="h-4 w-4 text-blue-500" />
                 <span className="text-lg font-bold font-mono">{avgCpu.toFixed(0)}%</span>
               </div>
               <p className="text-xs text-muted-foreground">Avg CPU</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <MemoryStick className="h-4 w-4 text-purple-500" />
+                <MdMemory className="h-4 w-4 text-purple-500" />
                 <span className="text-lg font-bold font-mono">{avgMemory.toFixed(0)}%</span>
               </div>
               <p className="text-xs text-muted-foreground">Avg Memory</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <Activity className="h-4 w-4 text-emerald-500" />
+                <MdShowChart className="h-4 w-4 text-emerald-500" />
                 <span className="text-lg font-bold font-mono">{resources.filter(r => r.status === 'running').length}</span>
               </div>
               <p className="text-xs text-muted-foreground">Running</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <Activity className="h-4 w-4 text-destructive" />
+                <MdShowChart className="h-4 w-4 text-destructive" />
                 <span className="text-lg font-bold font-mono">{underutilized}</span>
               </div>
               <p className="text-xs text-muted-foreground">Underutilized</p>

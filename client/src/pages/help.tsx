@@ -1,3 +1,4 @@
+import { MdChatBubbleOutline, MdEmail, MdHelpOutline, MdMenuBook, MdOpenInNew, MdSearch } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,14 +8,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { 
-  HelpCircle,
-  Search,
-  BookOpen,
-  MessageCircle,
-  Mail,
-  ExternalLink,
-} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -44,17 +37,22 @@ const faqs = [
 export default function Help() {
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 max-w-[1200px] mx-auto" data-testid="help-page">
+      <div className="p-6 max-w-[1920px] mx-auto" data-testid="help-page">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="mb-6"
         >
-          <h1 className="text-2xl font-bold text-foreground">Help Center</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Find answers and get support
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-primary/10">
+              <MdHelpOutline className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Help Center</h1>
+              <p className="text-sm text-muted-foreground">Find answers, documentation, and resources to get the most from the platform</p>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div
@@ -64,7 +62,7 @@ export default function Help() {
           className="mb-8"
         >
           <div className="relative max-w-xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search for help..."
               className="pl-10"
@@ -74,9 +72,9 @@ export default function Help() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
-            { icon: BookOpen, title: 'Documentation', desc: 'Read the full docs' },
-            { icon: MessageCircle, title: 'Live Chat', desc: 'Talk to our team' },
-            { icon: Mail, title: 'Email Support', desc: 'support@huaweicloud.com' },
+            { icon: MdMenuBook, title: 'Documentation', desc: 'Read the full docs' },
+            { icon: MdChatBubbleOutline, title: 'Live Chat', desc: 'Talk to our team' },
+            { icon: MdEmail, title: 'Email Support', desc: 'support@huaweicloud.com' },
           ].map((item, i) => (
             <motion.div
               key={item.title}
@@ -105,7 +103,7 @@ export default function Help() {
           <Card className="bg-card/50 backdrop-blur-sm border-card-border">
             <CardHeader>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-primary" />
+                <MdHelpOutline className="h-5 w-5 text-primary" />
                 Frequently Asked Questions
               </CardTitle>
             </CardHeader>
@@ -137,7 +135,7 @@ export default function Help() {
           </p>
           <Button>
             Contact Support
-            <ExternalLink className="h-4 w-4 ml-2" />
+            <MdOpenInNew className="h-4 w-4 ml-2" />
           </Button>
         </motion.div>
       </div>

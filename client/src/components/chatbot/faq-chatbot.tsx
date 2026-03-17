@@ -1,23 +1,61 @@
+import { MdAutoAwesome, MdClose, MdDns, MdHelpOutline, MdPerson, MdReplay, MdSavings, MdSend, MdShield, MdSmartToy, MdTrendingUp } from 'react-icons/md';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import {
-  MessageCircle,
-  X,
-  Send,
-  Bot,
-  User,
-  Sparkles,
-  HelpCircle,
-  TrendingUp,
-  PiggyBank,
-  Server,
-  Shield,
-  RotateCcw,
-} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Robot mascot in Huawei red shirt
+function HuaweiMascot({ size = 48, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" className={className}>
+      {/* Antenna */}
+      <line x1="40" y1="12" x2="40" y2="4" stroke="#546E7A" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="40" cy="3" r="3.5" fill="#E53935" />
+      {/* Head - silver/gray robot head */}
+      <rect x="16" y="12" width="48" height="32" rx="10" fill="#CFD8DC" stroke="#B0BEC5" strokeWidth="1.5" />
+      {/* Face screen */}
+      <rect x="21" y="17" width="38" height="22" rx="6" fill="#263238" />
+      {/* Eyes - glowing */}
+      <circle cx="33" cy="27" r="5" fill="#4FC3F7" />
+      <circle cx="47" cy="27" r="5" fill="#4FC3F7" />
+      <circle cx="34.5" cy="25.5" r="2" fill="white" opacity="0.8" />
+      <circle cx="48.5" cy="25.5" r="2" fill="white" opacity="0.8" />
+      {/* Smile on screen */}
+      <path d="M33 33 C36 36, 44 36, 47 33" stroke="#4FC3F7" strokeWidth="2" strokeLinecap="round" fill="none" />
+      {/* Neck */}
+      <rect x="34" y="44" width="12" height="4" rx="1" fill="#90A4AE" />
+      {/* Body - RED Huawei shirt */}
+      <rect x="14" y="48" width="52" height="24" rx="6" fill="#E53935" />
+      {/* Shirt collar/neckline */}
+      <path d="M34 48 L40 53 L46 48" stroke="#C62828" strokeWidth="1.5" fill="none" />
+      {/* Huawei flower logo on shirt — crisp SVG vector */}
+      <g transform="translate(40, 60)">
+        <path d="M0,-8.5 C-1.2,-6.5 -2,-3 -1.8,-0.5 C-0.8,0.5 0.8,0.5 1.8,-0.5 C2,-3 1.2,-6.5 0,-8.5Z" fill="white" transform="rotate(0)"/>
+        <path d="M0,-8.5 C-1.2,-6.5 -2,-3 -1.8,-0.5 C-0.8,0.5 0.8,0.5 1.8,-0.5 C2,-3 1.2,-6.5 0,-8.5Z" fill="white" transform="rotate(45)"/>
+        <path d="M0,-8.5 C-1.2,-6.5 -2,-3 -1.8,-0.5 C-0.8,0.5 0.8,0.5 1.8,-0.5 C2,-3 1.2,-6.5 0,-8.5Z" fill="white" transform="rotate(90)"/>
+        <path d="M0,-8.5 C-1.2,-6.5 -2,-3 -1.8,-0.5 C-0.8,0.5 0.8,0.5 1.8,-0.5 C2,-3 1.2,-6.5 0,-8.5Z" fill="white" transform="rotate(135)"/>
+        <path d="M0,-8.5 C-1.2,-6.5 -2,-3 -1.8,-0.5 C-0.8,0.5 0.8,0.5 1.8,-0.5 C2,-3 1.2,-6.5 0,-8.5Z" fill="white" transform="rotate(180)"/>
+        <path d="M0,-8.5 C-1.2,-6.5 -2,-3 -1.8,-0.5 C-0.8,0.5 0.8,0.5 1.8,-0.5 C2,-3 1.2,-6.5 0,-8.5Z" fill="white" transform="rotate(225)"/>
+        <path d="M0,-8.5 C-1.2,-6.5 -2,-3 -1.8,-0.5 C-0.8,0.5 0.8,0.5 1.8,-0.5 C2,-3 1.2,-6.5 0,-8.5Z" fill="white" transform="rotate(270)"/>
+        <path d="M0,-8.5 C-1.2,-6.5 -2,-3 -1.8,-0.5 C-0.8,0.5 0.8,0.5 1.8,-0.5 C2,-3 1.2,-6.5 0,-8.5Z" fill="white" transform="rotate(315)"/>
+      </g>
+      {/* Arms */}
+      <rect x="4" y="50" width="10" height="18" rx="5" fill="#CFD8DC" stroke="#B0BEC5" strokeWidth="1" />
+      <rect x="66" y="50" width="10" height="18" rx="5" fill="#CFD8DC" stroke="#B0BEC5" strokeWidth="1" />
+      {/* Hands */}
+      <circle cx="9" cy="69" r="4" fill="#B0BEC5" />
+      <circle cx="71" cy="69" r="4" fill="#B0BEC5" />
+      {/* Feet */}
+      <rect x="20" y="72" width="14" height="6" rx="3" fill="#546E7A" />
+      <rect x="46" y="72" width="14" height="6" rx="3" fill="#546E7A" />
+      {/* Ears - small antenna receivers */}
+      <rect x="10" y="20" width="6" height="10" rx="3" fill="#90A4AE" stroke="#78909C" strokeWidth="1" />
+      <rect x="64" y="20" width="6" height="10" rx="3" fill="#90A4AE" stroke="#78909C" strokeWidth="1" />
+    </svg>
+  );
+}
 
 // =====================================================
 // ENHANCED NLP SYSTEM
@@ -490,12 +528,12 @@ const faqData: FAQItem[] = [
 ];
 
 const categoryIcons = {
-  costs: TrendingUp,
-  optimization: PiggyBank,
-  resources: Server,
-  security: Shield,
-  general: HelpCircle,
-  dashboard: HelpCircle,
+  costs: MdTrendingUp,
+  optimization: MdSavings,
+  resources: MdDns,
+  security: MdShield,
+  general: MdHelpOutline,
+  dashboard: MdHelpOutline,
 };
 
 const categoryColors = {
@@ -660,6 +698,9 @@ function generateBotResponse(query: string): { content: string; followUp?: strin
 
 export function FAQChatbot() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [botPosition, setBotPosition] = useState<{ x: number; y: number } | null>(null);
+  const botRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -742,19 +783,37 @@ export function FAQChatbot() {
       <AnimatePresence>
         {!isOpen && (
           <motion.div
+            ref={botRef}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
+            drag
+            dragMomentum={false}
+            dragElastic={0.1}
+            onDragStart={() => setIsDragging(true)}
+            onDragEnd={() => {
+              setTimeout(() => setIsDragging(false), 50);
+              if (botRef.current) {
+                const rect = botRef.current.getBoundingClientRect();
+                setBotPosition({ x: rect.left, y: rect.top });
+              }
+            }}
+            className="fixed bottom-6 right-6 z-50 flex items-end gap-3 cursor-grab active:cursor-grabbing"
           >
-            <Button
-              size="lg"
-              className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
-              onClick={() => setIsOpen(true)}
-            >
-              <MessageCircle className="h-6 w-6" />
-            </Button>
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-background animate-pulse" />
+            <div className="relative" onClick={() => {
+              if (!isDragging) {
+                if (botRef.current && !botPosition) {
+                  const rect = botRef.current.getBoundingClientRect();
+                  setBotPosition({ x: rect.left, y: rect.top });
+                }
+                setIsOpen(true);
+              }
+            }}>
+              <div className="h-16 w-16 rounded-lg shadow-lg bg-card border border-border hover:bg-muted/30 transition-colors flex items-center justify-center">
+                <HuaweiMascot size={52} />
+              </div>
+              <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -767,16 +826,26 @@ export function FAQChatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-6 right-6 z-50 w-[400px] h-[600px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            drag
+            dragMomentum={false}
+            dragElastic={0.1}
+            className="fixed z-50 w-[400px] h-[600px] bg-card border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden"
+            style={botPosition ? {
+              left: Math.min(botPosition.x, window.innerWidth - 420),
+              top: Math.max(0, botPosition.y - 600),
+            } : {
+              bottom: 24,
+              right: 24,
+            }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
+            {/* Header — drag handle */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50 cursor-grab active:cursor-grabbing">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bot className="h-5 w-5 text-primary" />
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <HuaweiMascot size={36} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">FinOps Assistant</h3>
+                  <h3 className="font-semibold text-sm">Hua - FinOps Assistant</h3>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     Online
@@ -790,14 +859,14 @@ export function FAQChatbot() {
                   onClick={handleReset}
                   title="Reset conversation"
                 >
-                  <RotateCcw className="h-4 w-4" />
+                  <MdReplay className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsOpen(false)}
                 >
-                  <X className="h-4 w-4" />
+                  <MdClose className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -822,17 +891,17 @@ export function FAQChatbot() {
                         )}
                       >
                         {message.type === 'user' ? (
-                          <User className="h-4 w-4" />
+                          <MdPerson className="h-4 w-4" />
                         ) : (
-                          <Bot className="h-4 w-4" />
+                          <MdSmartToy className="h-4 w-4" />
                         )}
                       </div>
                       <div
                         className={cn(
-                          "max-w-[280px] rounded-2xl px-4 py-2.5",
+                          "max-w-[280px] rounded-lg px-4 py-2.5",
                           message.type === 'user'
-                            ? "bg-primary text-primary-foreground rounded-br-md"
-                            : "bg-muted rounded-bl-md"
+                            ? "bg-primary text-primary-foreground rounded-br-sm"
+                            : "bg-muted rounded-bl-sm"
                         )}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -859,9 +928,9 @@ export function FAQChatbot() {
                 {isTyping && (
                   <div className="flex gap-3">
                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                      <Bot className="h-4 w-4" />
+                      <MdSmartToy className="h-4 w-4" />
                     </div>
-                    <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+                    <div className="bg-muted rounded-lg rounded-bl-sm px-4 py-3">
                       <div className="flex gap-1">
                         <span className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '0ms' }} />
                         <span className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -875,7 +944,7 @@ export function FAQChatbot() {
                 {messages.length === 1 && (
                   <div className="space-y-2 mt-4">
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" />
+                      <MdAutoAwesome className="h-3 w-3" />
                       Popular questions
                     </p>
                     {quickQuestions.map((faq) => {
@@ -917,7 +986,7 @@ export function FAQChatbot() {
                   size="icon"
                   disabled={!input.trim() || isTyping}
                 >
-                  <Send className="h-4 w-4" />
+                  <MdSend className="h-4 w-4" />
                 </Button>
               </form>
               <p className="text-[10px] text-muted-foreground text-center mt-2">

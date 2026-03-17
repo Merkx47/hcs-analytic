@@ -1,3 +1,4 @@
+import { MdAdd, MdArrowForward, MdBarChart, MdApartment, MdDelete, MdEdit, MdEmail, MdFlashOn, MdLightbulb, MdPeople, MdPublic, MdSearch, MdTrackChanges, MdTrendingUp } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,22 +37,6 @@ import { useDataStore } from '@/lib/data-store';
 import { generateTenantSummaries } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
 import { useMemo, useState } from 'react';
-import {
-  Users,
-  Search,
-  Building2,
-  Zap,
-  Lightbulb,
-  TrendingUp,
-  ArrowRight,
-  Mail,
-  Globe,
-  BarChart3,
-  Target,
-  Pencil,
-  Trash2,
-  Plus,
-} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -65,6 +50,9 @@ export default function Tenants() {
   const { tenants, addTenant, updateTenant, deleteTenant } = useDataStore();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('all');
+  const [countryFilter, setCountryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<typeof tenants[0] | null>(null);
@@ -95,12 +83,24 @@ export default function Tenants() {
   }, [tenants]);
 
   const filteredTenants = useMemo(() => {
-    return summaries.filter(s =>
-      s.tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.tenant.industry.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.tenant.country.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [summaries, searchQuery]);
+    return summaries.filter(s => {
+      const matchesSearch = searchQuery === '' ||
+        s.tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.tenant.industry.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.tenant.country.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesIndustry = industryFilter === 'all' ||
+        s.tenant.industry === industryFilter;
+
+      const matchesCountry = countryFilter === 'all' ||
+        s.tenant.country === countryFilter;
+
+      const matchesStatus = statusFilter === 'all' ||
+        s.tenant.status === statusFilter;
+
+      return matchesSearch && matchesIndustry && matchesCountry && matchesStatus;
+    });
+  }, [summaries, searchQuery, industryFilter, countryFilter, statusFilter]);
 
   const stats = useMemo(() => {
     const totalSpend = summaries.reduce((sum, s) => sum + s.totalSpend, 0);
@@ -184,16 +184,19 @@ export default function Tenants() {
           transition={{ duration: 0.3 }}
           className="flex items-center justify-between gap-4 mb-6"
         >
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Tenant Management</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Multi-tenant cost analytics and comparison
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-primary/10">
+              <MdApartment className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Tenant Management</h1>
+              <p className="text-sm text-muted-foreground">Monitor and manage tenants, their resources, budgets, and cost performance</p>
+            </div>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-2" />
+                <MdAdd className="h-4 w-4 mr-2" />
                 Add Tenant
               </Button>
             </DialogTrigger>
@@ -370,10 +373,10 @@ export default function Tenants() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total Tenants', value: tenants.length, icon: Users, color: 'text-primary' },
-            { label: 'Combined Spend', value: formatCurrency(stats.totalSpend, currency), icon: BarChart3, color: 'text-emerald-500', isValue: true },
-            { label: 'Avg Efficiency', value: `${stats.avgEfficiency.toFixed(0)}%`, icon: Zap, color: 'text-amber-500' },
-            { label: 'Pending Actions', value: stats.totalRecommendations, icon: Lightbulb, color: 'text-blue-500' },
+            { label: 'Total Tenants', value: tenants.length, icon: MdApartment, color: 'text-primary' },
+            { label: 'Combined Spend', value: formatCurrency(stats.totalSpend, currency), icon: MdBarChart, color: 'text-emerald-500', isValue: true },
+            { label: 'Avg Efficiency', value: `${stats.avgEfficiency.toFixed(0)}%`, icon: MdFlashOn, color: 'text-amber-500' },
+            { label: 'Pending Actions', value: stats.totalRecommendations, icon: MdLightbulb, color: 'text-blue-500' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -415,12 +418,12 @@ export default function Tenants() {
             <CardHeader className="pb-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
+                  <MdApartment className="h-5 w-5 text-primary" />
                   All Tenants
                   <Badge variant="secondary" className="ml-2">{filteredTenants.length}</Badge>
                 </CardTitle>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search tenants..."
                     value={searchQuery}
@@ -429,6 +432,57 @@ export default function Tenants() {
                     data-testid="input-search-tenants"
                   />
                 </div>
+              </div>
+              {/* Filter Row */}
+              <div className="flex flex-wrap items-center gap-3 mt-4">
+                <Select value={industryFilter} onValueChange={setIndustryFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Industries</SelectItem>
+                    <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="Telecommunications">Telecommunications</SelectItem>
+                    <SelectItem value="Fintech">Fintech</SelectItem>
+                    <SelectItem value="Banking">Banking</SelectItem>
+                    <SelectItem value="Technology">Technology</SelectItem>
+                    <SelectItem value="E-commerce">E-commerce</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={countryFilter} onValueChange={setCountryFilter}>
+                  <SelectTrigger className="w-[170px]">
+                    <SelectValue placeholder="Country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Countries</SelectItem>
+                    <SelectItem value="Nigeria">Nigeria</SelectItem>
+                    <SelectItem value="Kenya">Kenya</SelectItem>
+                    <SelectItem value="South Africa">South Africa</SelectItem>
+                    <SelectItem value="Ghana">Ghana</SelectItem>
+                    <SelectItem value="Egypt">Egypt</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(industryFilter !== 'all' || countryFilter !== 'all' || statusFilter !== 'all') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => { setIndustryFilter('all'); setCountryFilter('all'); setStatusFilter('all'); }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -441,13 +495,13 @@ export default function Tenants() {
                     transition={{ duration: 0.3, delay: 0.05 * index }}
                   >
                     <div
-                      className="p-4 rounded-xl border border-border bg-background/50 hover-elevate cursor-pointer group"
+                      className="p-4 rounded-lg border border-border bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
                       data-testid={`tenant-card-${summary.tenant.id}`}
                     >
                       <div className="flex items-start justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3" onClick={() => viewTenantDashboard(summary.tenant.id)}>
+                        <div className="flex items-center gap-3" role="button" tabIndex={0} onClick={() => viewTenantDashboard(summary.tenant.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); viewTenantDashboard(summary.tenant.id); } }}>
                           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
-                            <Building2 className="h-6 w-6 text-primary" />
+                            <MdApartment className="h-6 w-6 text-primary" />
                           </div>
                           <div>
                             <h3 className="font-semibold">{summary.tenant.name}</h3>
@@ -455,7 +509,7 @@ export default function Tenants() {
                               <span>{summary.tenant.industry}</span>
                               <span>-</span>
                               <span className="flex items-center gap-1">
-                                <Globe className="h-3 w-3" />
+                                <MdPublic className="h-3 w-3" />
                                 {summary.tenant.country}
                               </span>
                             </div>
@@ -468,7 +522,7 @@ export default function Tenants() {
                             className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => { e.stopPropagation(); openEditDialog(summary.tenant); }}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <MdEdit className="h-4 w-4" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -478,7 +532,7 @@ export default function Tenants() {
                                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <MdDelete className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -502,7 +556,7 @@ export default function Tenants() {
                         </div>
                       </div>
 
-                      <div className="space-y-3 mb-4" onClick={() => viewTenantDashboard(summary.tenant.id)}>
+                      <div className="space-y-3 mb-4" role="button" tabIndex={0} onClick={() => viewTenantDashboard(summary.tenant.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); viewTenantDashboard(summary.tenant.id); } }}>
                         <div>
                           <div className="flex items-center justify-between text-xs mb-1">
                             <span className="text-muted-foreground">Monthly Spend</span>
@@ -534,9 +588,9 @@ export default function Tenants() {
                       </div>
 
                       <div className="flex items-center justify-between pt-3 border-t border-border">
-                        <div className="flex items-center gap-4" onClick={() => viewTenantDashboard(summary.tenant.id)}>
+                        <div className="flex items-center gap-4" role="button" tabIndex={0} onClick={() => viewTenantDashboard(summary.tenant.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); viewTenantDashboard(summary.tenant.id); } }}>
                           <div className="flex items-center gap-1">
-                            <Zap className={cn(
+                            <MdFlashOn className={cn(
                               "h-4 w-4",
                               summary.efficiencyScore >= 80 ? "text-emerald-500" :
                               summary.efficiencyScore >= 60 ? "text-amber-500" : "text-destructive"
@@ -544,7 +598,7 @@ export default function Tenants() {
                             <span className="text-sm font-mono">{summary.efficiencyScore}%</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Lightbulb className="h-4 w-4 text-amber-500" />
+                            <MdLightbulb className="h-4 w-4 text-amber-500" />
                             <span className="text-sm font-mono">{summary.recommendationCount}</span>
                           </div>
                           <Badge
@@ -565,13 +619,13 @@ export default function Tenants() {
                           onClick={() => viewTenantDashboard(summary.tenant.id)}
                         >
                           View Dashboard
-                          <ArrowRight className="h-4 w-4 ml-1" />
+                          <MdArrowForward className="h-4 w-4 ml-1" />
                         </Button>
                       </div>
 
                       <div className="mt-3 pt-3 border-t border-border">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Mail className="h-3 w-3" />
+                          <MdEmail className="h-3 w-3" />
                           <span>{summary.tenant.contactEmail}</span>
                         </div>
                       </div>
@@ -582,7 +636,7 @@ export default function Tenants() {
 
               {filteredTenants.length === 0 && (
                 <div className="text-center py-12">
-                  <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <MdPeople className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Tenants Found</h3>
                   <p className="text-sm text-muted-foreground">
                     Try adjusting your search query or add a new tenant.

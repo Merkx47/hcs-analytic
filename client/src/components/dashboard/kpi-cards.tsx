@@ -1,17 +1,8 @@
+import { MdAccountBalanceWallet, MdDns, MdFlashOn, MdLightbulb, MdSavings, MdTrackChanges, MdTrendingDown, MdTrendingUp } from 'react-icons/md';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateKPIs, getDaysFromPreset } from '@/lib/mock-data';
-import {
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  Server,
-  Lightbulb,
-  Target,
-  Zap,
-  PiggyBank,
-} from 'lucide-react';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -22,7 +13,7 @@ interface KPICardProps {
   subtitle?: string;
   trend?: number;
   trendLabel?: string;
-  icon: typeof TrendingUp;
+  icon: typeof MdTrendingUp;
   iconColor?: string;
   delay?: number;
 }
@@ -69,9 +60,9 @@ function KPICard({
                     )}
                   >
                     {isPositiveTrend ? (
-                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <MdTrendingUp className="h-3 w-3 mr-1" />
                     ) : isNegativeTrend ? (
-                      <TrendingDown className="h-3 w-3 mr-1" />
+                      <MdTrendingDown className="h-3 w-3 mr-1" />
                     ) : null}
                     {trend > 0 ? '+' : ''}{trend}%
                   </Badge>
@@ -117,7 +108,7 @@ export function KPICards() {
         value={formatCurrency(kpis.totalSpend, currency)}
         trend={kpis.spendGrowthRate}
         trendLabel="vs previous period"
-        icon={Wallet}
+        icon={MdAccountBalanceWallet}
         iconColor="text-primary"
         delay={0}
       />
@@ -125,7 +116,7 @@ export function KPICards() {
         title="Budget Utilization"
         value={`${kpis.budgetUsed}%`}
         subtitle={`${formatCompactCurrency(kpis.totalSpend, currency)} of ${formatCompactCurrency(kpis.totalBudget, currency)}`}
-        icon={Target}
+        icon={MdTrackChanges}
         iconColor={kpis.budgetUsed > 90 ? "text-destructive" : kpis.budgetUsed > 70 ? "text-amber-500" : "text-emerald-500"}
         delay={0.1}
       />
@@ -133,7 +124,7 @@ export function KPICards() {
         title="Active Resources"
         value={kpis.activeResources.toLocaleString()}
         subtitle={`${formatCurrency(kpis.costPerResource, currency)} avg/resource`}
-        icon={Server}
+        icon={MdDns}
         iconColor="text-blue-500"
         delay={0.2}
       />
@@ -141,7 +132,7 @@ export function KPICards() {
         title="Potential Savings"
         value={formatCurrency(kpis.potentialSavings, currency)}
         subtitle={`${kpis.optimizationOpportunities} opportunities`}
-        icon={PiggyBank}
+        icon={MdSavings}
         iconColor="text-emerald-500"
         delay={0.3}
       />
@@ -166,7 +157,7 @@ export function SecondaryKPIs() {
               <p className="text-2xl font-bold font-mono">{kpis.averageEfficiency}%</p>
             </div>
             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center">
-              <Zap className="h-5 w-5 text-emerald-500" />
+              <MdFlashOn className="h-5 w-5 text-emerald-500" />
             </div>
           </div>
         </CardContent>
@@ -180,7 +171,7 @@ export function SecondaryKPIs() {
               <p className="text-2xl font-bold font-mono">{kpis.optimizationOpportunities}</p>
             </div>
             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex items-center justify-center">
-              <Lightbulb className="h-5 w-5 text-amber-500" />
+              <MdLightbulb className="h-5 w-5 text-amber-500" />
             </div>
           </div>
         </CardContent>
@@ -194,7 +185,7 @@ export function SecondaryKPIs() {
               <p className="text-2xl font-bold font-mono">{formatCurrency(kpis.costPerResource, currency)}</p>
             </div>
             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center">
-              <Server className="h-5 w-5 text-blue-500" />
+              <MdDns className="h-5 w-5 text-blue-500" />
             </div>
           </div>
         </CardContent>

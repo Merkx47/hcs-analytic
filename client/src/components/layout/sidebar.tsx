@@ -1,49 +1,41 @@
+import { MdAccountBalanceWallet, MdBarChart, MdChevronLeft, MdChevronRight, MdDashboard, MdDelete, MdDns, MdApartment, MdHeadsetMic, MdHelpOutline, MdLabel, MdLightbulb, MdMenuBook, MdNotifications, MdSettings, MdTrackChanges, MdTrendingUp } from 'react-icons/md';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  TrendingUp,
-  Server,
-  Lightbulb,
-  Users,
-  Settings,
-  HelpCircle,
-  ChevronLeft,
-  ChevronRight,
-  BarChart3,
-  Target,
-  Wallet,
-  BookOpen,
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore } from '@/lib/finops-store';
+import { useDataStore } from '@/lib/data-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
+const TenantsIcon = ({ className }: { className?: string }) => <MdApartment className={className} />;
+
 interface NavItem {
-  icon: typeof LayoutDashboard;
+  icon: React.FC<{ className?: string }>;
   label: string;
   href: string;
   badge?: number;
 }
 
-const mainNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Overview', href: '/' },
-  { icon: TrendingUp, label: 'Cost Analytics', href: '/analytics' },
-  { icon: Server, label: 'Resources', href: '/resources' },
-  { icon: Lightbulb, label: 'Recommendations', href: '/recommendations', badge: 10 },
-  { icon: Users, label: 'Tenants', href: '/tenants' },
+const staticMainNavItems: NavItem[] = [
+  { icon: MdDashboard, label: 'Overview', href: '/' },
+  { icon: MdTrendingUp, label: 'Cost Analytics', href: '/analytics' },
+  { icon: MdDns, label: 'Resources', href: '/resources' },
+  { icon: MdLightbulb, label: 'Recommendations', href: '/recommendations', badge: 10 },
+  { icon: TenantsIcon, label: 'Tenants', href: '/tenants' },
+  { icon: MdLabel, label: 'Tag Governance', href: '/tags' },
 ];
 
 const secondaryNavItems: NavItem[] = [
-  { icon: Target, label: 'Budgets', href: '/budgets' },
-  { icon: Wallet, label: 'Cost Allocation', href: '/allocation' },
-  { icon: BarChart3, label: 'Reports', href: '/reports' },
+  { icon: MdTrackChanges, label: 'Budgets', href: '/budgets' },
+  { icon: MdAccountBalanceWallet, label: 'Cost Allocation', href: '/allocation' },
+  { icon: MdBarChart, label: 'Reports', href: '/reports' },
+  { icon: MdDelete, label: 'Waste Detection', href: '/waste' },
 ];
 
 const bottomNavItems: NavItem[] = [
-  { icon: BookOpen, label: 'HCS Guide', href: '/guide' },
-  { icon: Settings, label: 'Settings', href: '/settings' },
-  { icon: HelpCircle, label: 'Help', href: '/help' },
+  { icon: MdHeadsetMic, label: 'Support', href: '/support' },
+  { icon: MdMenuBook, label: 'HCS Guide', href: '/guide' },
+  { icon: MdSettings, label: 'Settings', href: '/settings' },
+  { icon: MdHelpOutline, label: 'Help', href: '/help' },
 ];
 
 function NavLink({ 
@@ -102,9 +94,16 @@ function NavLink({
 export function Sidebar() {
   const [location] = useLocation();
   const { sidebarCollapsed, setSidebarCollapsed } = useFinOpsStore();
+  const unreadCount = useDataStore((s) => s.notifications.filter((n) => !n.isRead).length);
+
+  const mainNavItems: NavItem[] = [
+    ...staticMainNavItems,
+    { icon: MdNotifications, label: 'Notifications', href: '/notifications', badge: unreadCount || undefined },
+  ];
 
   return (
     <aside
+      data-tour="sidebar"
       className={cn(
         "h-[calc(100vh-4rem)] border-r border-border bg-sidebar flex flex-col transition-all duration-300",
         sidebarCollapsed ? "w-16" : "w-64"
@@ -162,11 +161,11 @@ export function Sidebar() {
           data-testid="button-toggle-sidebar"
         >
           {sidebarCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <MdChevronRight className="h-4 w-4" />
           ) : (
             <>
               <span className="text-xs text-muted-foreground mr-2">Collapse</span>
-              <ChevronLeft className="h-4 w-4" />
+              <MdChevronLeft className="h-4 w-4" />
             </>
           )}
         </Button>

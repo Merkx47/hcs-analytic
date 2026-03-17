@@ -1,3 +1,4 @@
+import { MdApartment, MdCheck, MdCloud, MdDns, MdExpandMore, MdInfoOutline, MdInventory2, MdLan, MdPersonAdd, MdStorage } from 'react-icons/md';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,32 +21,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Server,
-  Building2,
-  Layers,
-  Box,
-  Database,
-  Cloud,
-  UserPlus,
-  ChevronDown,
-  Check,
-  Info,
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const TenantBuildingIcon = ({ className }: { className?: string }) => <MdApartment className={className} />;
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Type configuration matching the guide
 const typeConfig = {
-  root: { bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-400 dark:border-red-600', text: 'text-red-700 dark:text-red-400', icon: Cloud, ring: 'ring-red-500' },
-  zone: { bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-400 dark:border-blue-600', text: 'text-blue-700 dark:text-blue-400', icon: Server, ring: 'ring-blue-500' },
-  tenant: { bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-400 dark:border-purple-600', text: 'text-purple-700 dark:text-purple-400', icon: Building2, ring: 'ring-purple-500' },
-  vdc1: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-400 dark:border-green-600', text: 'text-green-700 dark:text-green-400', icon: Layers, ring: 'ring-green-500' },
-  vdc2: { bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-400 dark:border-amber-600', text: 'text-amber-700 dark:text-amber-400', icon: Layers, ring: 'ring-amber-500' },
-  vdc3: { bg: 'bg-cyan-50 dark:bg-cyan-950/30', border: 'border-cyan-400 dark:border-cyan-600', text: 'text-cyan-700 dark:text-cyan-400', icon: Layers, ring: 'ring-cyan-500' },
-  vdc4: { bg: 'bg-pink-50 dark:bg-pink-950/30', border: 'border-pink-400 dark:border-pink-600', text: 'text-pink-700 dark:text-pink-400', icon: Layers, ring: 'ring-pink-500' },
-  vdc5: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-400 dark:border-indigo-600', text: 'text-indigo-700 dark:text-indigo-400', icon: Box, ring: 'ring-indigo-500' },
-  resource: { bg: 'bg-slate-50 dark:bg-slate-950/30', border: 'border-slate-400 dark:border-slate-600', text: 'text-slate-700 dark:text-slate-400', icon: Database, ring: 'ring-slate-500' },
+  root: { bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-400 dark:border-red-600', text: 'text-red-700 dark:text-red-400', icon: MdCloud, ring: 'ring-red-500' },
+  zone: { bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-400 dark:border-blue-600', text: 'text-blue-700 dark:text-blue-400', icon: MdDns, ring: 'ring-blue-500' },
+  tenant: { bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-400 dark:border-purple-600', text: 'text-purple-700 dark:text-purple-400', icon: TenantBuildingIcon, ring: 'ring-purple-500' },
+  vdc1: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-400 dark:border-green-600', text: 'text-green-700 dark:text-green-400', icon: MdLan, ring: 'ring-green-500' },
+  vdc2: { bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-400 dark:border-amber-600', text: 'text-amber-700 dark:text-amber-400', icon: MdLan, ring: 'ring-amber-500' },
+  vdc3: { bg: 'bg-cyan-50 dark:bg-cyan-950/30', border: 'border-cyan-400 dark:border-cyan-600', text: 'text-cyan-700 dark:text-cyan-400', icon: MdLan, ring: 'ring-cyan-500' },
+  vdc4: { bg: 'bg-pink-50 dark:bg-pink-950/30', border: 'border-pink-400 dark:border-pink-600', text: 'text-pink-700 dark:text-pink-400', icon: MdLan, ring: 'ring-pink-500' },
+  vdc5: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-400 dark:border-indigo-600', text: 'text-indigo-700 dark:text-indigo-400', icon: MdInventory2, ring: 'ring-indigo-500' },
+  resource: { bg: 'bg-slate-50 dark:bg-slate-950/30', border: 'border-slate-400 dark:border-slate-600', text: 'text-slate-700 dark:text-slate-400', icon: MdStorage, ring: 'ring-slate-500' },
 } as const;
 
 type NodeType = keyof typeof typeConfig;
@@ -233,7 +224,7 @@ function SelectableNode({
           {node.sublabel && <p className="text-[9px] text-muted-foreground truncate">{node.sublabel}</p>}
         </div>
         {isSelected && (
-          <Check className="h-3 w-3 text-primary flex-shrink-0" />
+          <MdCheck className="h-3 w-3 text-primary flex-shrink-0" />
         )}
         {hasChildren && (
           <button
@@ -243,7 +234,7 @@ function SelectableNode({
             }}
             className="p-0.5 hover:bg-muted rounded"
           >
-            <ChevronDown className={cn(
+            <MdExpandMore className={cn(
               "h-2.5 w-2.5 transition-transform text-muted-foreground",
               expanded && "rotate-180"
             )} />
@@ -324,7 +315,7 @@ export function UserOnboarding() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Add User button */}
+      {/* Header with Add Person button */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold">User Access Management</h3>
@@ -335,7 +326,7 @@ export function UserOnboarding() {
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button>
-              <UserPlus className="h-4 w-4 mr-2" />
+              <MdPersonAdd className="h-4 w-4 mr-2" />
               Add User
             </Button>
           </DialogTrigger>
@@ -403,7 +394,7 @@ export function UserOnboarding() {
                       className="p-3 rounded-lg border border-primary/50 bg-primary/5"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <Check className="h-3.5 w-3.5 text-primary" />
+                        <MdCheck className="h-3.5 w-3.5 text-primary" />
                         <span className="font-semibold text-xs">Selected Access Level</span>
                       </div>
                       <div className="space-y-1.5">
@@ -443,7 +434,7 @@ export function UserOnboarding() {
                 <div className="space-y-2 px-1">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm">Click to Select Access Level</Label>
-                    <Info className="h-3 w-3 text-muted-foreground" />
+                    <MdInfoOutline className="h-3 w-3 text-muted-foreground" />
                   </div>
 
                   {/* Hierarchy Legend */}

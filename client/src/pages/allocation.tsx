@@ -1,18 +1,15 @@
+import { MdAccountBalanceWallet, MdExpandLess, MdExpandMore, MdLayers, MdPeople } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateServiceBreakdown, generateTenantSummaries } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Treemap,
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import {
-  Layers,
-  Users,
-} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTheme } from 'next-themes';
@@ -26,6 +23,8 @@ export default function Allocation() {
   const { currency, selectedTenantId } = useFinOpsStore();
   const { resolvedTheme } = useTheme();
   const textColor = resolvedTheme === 'dark' ? 'white' : 'black';
+  const [showAllServices, setShowAllServices] = useState(false);
+  const [showAllTenants, setShowAllTenants] = useState(false);
 
   const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
   const tenantSummaries = useMemo(() => generateTenantSummaries(), []);
@@ -64,10 +63,15 @@ export default function Allocation() {
           transition={{ duration: 0.3 }}
           className="mb-6"
         >
-          <h1 className="text-2xl font-bold text-foreground">Cost Allocation</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visualize cost distribution across services and tenants
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-primary/10">
+              <MdAccountBalanceWallet className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Cost Allocation</h1>
+              <p className="text-sm text-muted-foreground">Visualize cost distribution across services and tenants</p>
+            </div>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -79,7 +83,7 @@ export default function Allocation() {
             <Card className="bg-card/50 backdrop-blur-sm border-card-border h-full">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-primary" />
+                  <MdLayers className="h-5 w-5 text-primary" />
                   Allocation by Service
                 </CardTitle>
               </CardHeader>
@@ -129,20 +133,31 @@ export default function Allocation() {
                     </Treemap>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
-                  {serviceBreakdown.slice(0, 6).map((s) => (
-                    <Badge 
-                      key={s.service}
-                      variant="secondary"
-                      className="text-xs"
-                      style={{ 
-                        backgroundColor: `${serviceInfo[s.service]?.color}20`,
-                        color: serviceInfo[s.service]?.color,
-                      }}
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="flex flex-wrap gap-2">
+                    {(showAllServices ? serviceBreakdown : serviceBreakdown.slice(0, 6)).map((s) => (
+                      <Badge
+                        key={s.service}
+                        variant="secondary"
+                        className="text-xs"
+                        style={{
+                          backgroundColor: `${serviceInfo[s.service]?.color}20`,
+                          color: serviceInfo[s.service]?.color,
+                        }}
+                      >
+                        {s.service}: {formatCompactCurrency(s.cost, currency)}
+                      </Badge>
+                    ))}
+                  </div>
+                  {serviceBreakdown.length > 6 && (
+                    <button
+                      onClick={() => setShowAllServices(!showAllServices)}
+                      className="flex items-center gap-1 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {s.service}: {formatCompactCurrency(s.cost, currency)}
-                    </Badge>
-                  ))}
+                      {showAllServices ? <MdExpandLess className="h-3 w-3" /> : <MdExpandMore className="h-3 w-3" />}
+                      {showAllServices ? 'Show less' : `Show all (${serviceBreakdown.length})`}
+                    </button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -156,7 +171,7 @@ export default function Allocation() {
             <Card className="bg-card/50 backdrop-blur-sm border-card-border h-full">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
+                  <MdPeople className="h-5 w-5 text-primary" />
                   Allocation by Tenant
                 </CardTitle>
               </CardHeader>
@@ -207,16 +222,27 @@ export default function Allocation() {
                     </Treemap>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
-                  {tenantSummaries.slice(0, 4).map((t) => (
-                    <Badge
-                      key={t.tenant.id}
-                      variant="secondary"
-                      className="text-xs"
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="flex flex-wrap gap-2">
+                    {(showAllTenants ? tenantSummaries : tenantSummaries.slice(0, 4)).map((t) => (
+                      <Badge
+                        key={t.tenant.id}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {t.tenant.name}: {formatCompactCurrency(t.totalSpend, currency)}
+                      </Badge>
+                    ))}
+                  </div>
+                  {tenantSummaries.length > 4 && (
+                    <button
+                      onClick={() => setShowAllTenants(!showAllTenants)}
+                      className="flex items-center gap-1 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {t.tenant.name}: {formatCompactCurrency(t.totalSpend, currency)}
-                    </Badge>
-                  ))}
+                      {showAllTenants ? <MdExpandLess className="h-3 w-3" /> : <MdExpandMore className="h-3 w-3" />}
+                      {showAllTenants ? 'Show less' : `Show all (${tenantSummaries.length})`}
+                    </button>
+                  )}
                 </div>
               </CardContent>
             </Card>
