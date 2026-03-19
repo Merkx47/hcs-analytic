@@ -23,13 +23,14 @@ export type User = typeof users.$inferSelect;
 // Currency types
 export type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY' | 'CNY' | 'NGN';
 
+// Rates are NGN-based: 1 NGN = X of target currency. NGN is always 1 (base).
 export const currencyInfo: Record<Currency, { symbol: string; name: string; flag: string; rate: number }> = {
-  USD: { symbol: '$', name: 'US Dollar', flag: '🇺🇸', rate: 1 },
-  GBP: { symbol: '£', name: 'British Pound', flag: '🇬🇧', rate: 0.79 },
-  EUR: { symbol: '€', name: 'Euro', flag: '🇪🇺', rate: 0.92 },
-  JPY: { symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵', rate: 149.50 },
-  CNY: { symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳', rate: 7.24 },
-  NGN: { symbol: '₦', name: 'Nigerian Naira', flag: '🇳🇬', rate: 1550.00 },
+  NGN: { symbol: '₦', name: 'Nigerian Naira', flag: '🇳🇬', rate: 1 },
+  USD: { symbol: '$', name: 'US Dollar', flag: '🇺🇸', rate: 0.000645 },
+  GBP: { symbol: '£', name: 'British Pound', flag: '🇬🇧', rate: 0.000510 },
+  EUR: { symbol: '€', name: 'Euro', flag: '🇪🇺', rate: 0.000593 },
+  JPY: { symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵', rate: 0.0965 },
+  CNY: { symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳', rate: 0.00467 },
 };
 
 // Huawei Cloud Regions

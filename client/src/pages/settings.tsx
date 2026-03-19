@@ -243,13 +243,13 @@ export default function Settings() {
                     <MdRefresh className="h-5 w-5 text-primary" />
                     Exchange Rates
                   </CardTitle>
-                  <CardDescription>Configure custom currency exchange rates relative to USD</CardDescription>
+                  <CardDescription>Set how much 1 NGN is worth in each foreign currency. All HCS costs are in Naira — other currencies are converted using these rates.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {(Object.keys(currencyInfo) as Currency[]).map((code) => {
                       const info = currencyInfo[code];
-                      const isBase = code === 'USD';
+                      const isBase = code === 'NGN';
                       return (
                         <div
                           key={code}
@@ -271,8 +271,8 @@ export default function Settings() {
                           <Input
                             type="number"
                             step="any"
-                            className="w-[100px] text-right"
-                            value={isBase ? '1.00' : editableRates[code]}
+                            className="w-[120px] text-right"
+                            value={isBase ? '1' : editableRates[code]}
                             disabled={isBase}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value);
