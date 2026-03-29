@@ -102,7 +102,6 @@ export default function Settings() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="api">API Keys</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
@@ -313,16 +312,6 @@ export default function Settings() {
               transition={{ duration: 0.4 }}
             >
               <UserOnboarding />
-            </motion.div>
-          </TabsContent>
-
-          <TabsContent value="notifications" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <NotificationSettings />
             </motion.div>
           </TabsContent>
 

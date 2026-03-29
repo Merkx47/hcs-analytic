@@ -84,7 +84,15 @@ const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
 ];
 
 export function Header() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  // Tenant selector only shows on data-driven analytics modules
+  const tenantFilterRoutes = ['/', '/analytics', '/resources', '/recommendations', '/waste-detection', '/budgets', '/allocation', '/tags'];
+  const showTenantFilter = tenantFilterRoutes.some(r => r === '/' ? location === '/' : location.startsWith(r));
+
+  // Region filter shows on all data-driven pages (same as tenant + tenants list)
+  const regionFilterRoutes = [...tenantFilterRoutes, '/tenants'];
+  const showRegionFilter = regionFilterRoutes.some(r => r === '/' ? location === '/' : location.startsWith(r));
   const logout = useDataStore((s) => s.logout);
   const {
     currency,
@@ -168,45 +176,6 @@ export function Header() {
               <span className="text-xs text-muted-foreground ml-2">Dashboard</span>
             </div>
           </div>
-          
-          
-          <Select 
-            value={selectedTenantId} 
-            onValueChange={setSelectedTenantId}
-          >
-            <SelectTrigger
-              className="w-[280px] bg-background/50"
-              data-testid="select-tenant"
-              data-tour="tenant-selector"
-            >
-              <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-                <MdApartment className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <SelectValue placeholder="Select Tenant" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" data-testid="select-tenant-all">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">All Tenants</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {selectedRegion === 'all' ? mockTenants.length : mockTenants.filter(t => getRegionScale(t.id, selectedRegion) > 0).length}
-                  </Badge>
-                </div>
-              </SelectItem>
-              {(selectedRegion === 'all' ? mockTenants : mockTenants.filter(t => getRegionScale(t.id, selectedRegion) > 0)).map((tenant) => (
-                <SelectItem
-                  key={tenant.id}
-                  value={tenant.id}
-                  data-testid={`select-tenant-${tenant.id}`}
-                >
-                  <div className="flex items-center justify-between gap-3 w-full whitespace-nowrap">
-                    <span className="truncate">{tenant.name}</span>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">{tenant.country}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
           <Select
             value={selectedRegion}

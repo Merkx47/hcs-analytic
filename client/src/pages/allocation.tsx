@@ -2,8 +2,9 @@ import { MdAccountBalanceWallet, MdExpandLess, MdExpandMore, MdLayers, MdPeople 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateServiceBreakdown, generateTenantSummaries } from '@/lib/mock-data';
+import { generateServiceBreakdown, generateTenantSummaries, generateVDCHierarchy, mockTenants } from '@/lib/mock-data';
 import { serviceInfo } from '@shared/schema';
+import type { VDCNode } from '@shared/schema';
 import { useMemo, useState } from 'react';
 import {
   Treemap,
@@ -13,6 +14,7 @@ import {
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTheme } from 'next-themes';
+import { TenantFilter } from '@/components/layout/tenant-filter';
 
 const COLORS = [
   '#E53935', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA',
@@ -29,6 +31,23 @@ export default function Allocation() {
   const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedTenantId, 30, selectedRegion), [selectedTenantId, selectedRegion]);
   const tenantSummaries = useMemo(() => generateTenantSummaries(selectedRegion), [selectedRegion]);
 
+  const selectedTenant = useMemo(() => {
+    if (selectedTenantId === 'all') return null;
+    return mockTenants.find(t => t.id === selectedTenantId) || null;
+  }, [selectedTenantId]);
+
+  // When a tenant is selected, show VDC breakdown instead of tenant breakdown
+  const vdcTreemapData = useMemo(() => {
+    if (!selectedTenant) return [];
+    const hierarchy = generateVDCHierarchy(selectedTenant.id, selectedTenant.budget);
+    const l2Nodes = hierarchy.children || [];
+    return l2Nodes.map((vdc: VDCNode, i: number) => ({
+      name: vdc.name,
+      size: vdc.spend,
+      fill: COLORS[i % COLORS.length],
+    }));
+  }, [selectedTenant]);
+
   const serviceTreemapData = serviceBreakdown.slice(0, 12).map((s, i) => ({
     name: s.service,
     size: s.cost,
@@ -40,6 +59,9 @@ export default function Allocation() {
     size: t.totalSpend,
     fill: COLORS[i % COLORS.length],
   }));
+
+  const isSpecificTenant = selectedTenantId !== 'all';
+  const rightTreemapData = isSpecificTenant ? vdcTreemapData : tenantTreemapData;
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -63,14 +85,17 @@ export default function Allocation() {
           transition={{ duration: 0.3 }}
           className="mb-6"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-primary/10">
-              <MdAccountBalanceWallet className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-primary/10">
+                <MdAccountBalanceWallet className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">{isSpecificTenant ? `${selectedTenant?.name} — Cost Allocation` : 'Cost Allocation'}</h1>
+                <p className="text-sm text-muted-foreground">{isSpecificTenant ? 'Cost distribution across services and VDCs' : 'Visualize cost distribution across services and tenants'}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">Cost Allocation</h1>
-              <p className="text-sm text-muted-foreground">Visualize cost distribution across services and tenants</p>
-            </div>
+            <TenantFilter />
           </div>
         </motion.div>
 
@@ -171,15 +196,15 @@ export default function Allocation() {
             <Card className="bg-card/50 backdrop-blur-sm border-card-border h-full">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <MdPeople className="h-5 w-5 text-primary" />
-                  Allocation by Tenant
+                  {isSpecificTenant ? <MdLayers className="h-5 w-5 text-primary" /> : <MdPeople className="h-5 w-5 text-primary" />}
+                  {isSpecificTenant ? 'Allocation by VDC' : 'Allocation by Tenant'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <Treemap
-                      data={tenantTreemapData}
+                      data={rightTreemapData}
                       dataKey="size"
                       aspectRatio={4/3}
                       stroke="hsl(var(--background))"
@@ -224,17 +249,21 @@ export default function Allocation() {
                 </div>
                 <div className="mt-4 pt-4 border-t border-border">
                   <div className="flex flex-wrap gap-2">
-                    {(showAllTenants ? tenantSummaries : tenantSummaries.slice(0, 4)).map((t) => (
-                      <Badge
-                        key={t.tenant.id}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {t.tenant.name}: {formatCompactCurrency(t.totalSpend, currency)}
-                      </Badge>
-                    ))}
+                    {isSpecificTenant ? (
+                      vdcTreemapData.map((v, i) => (
+                        <Badge key={v.name} variant="secondary" className="text-xs" style={{ backgroundColor: `${COLORS[i % COLORS.length]}20`, color: COLORS[i % COLORS.length] }}>
+                          {v.name}: {formatCompactCurrency(v.size, currency)}
+                        </Badge>
+                      ))
+                    ) : (
+                      (showAllTenants ? tenantSummaries : tenantSummaries.slice(0, 4)).map((t) => (
+                        <Badge key={t.tenant.id} variant="secondary" className="text-xs">
+                          {t.tenant.name}: {formatCompactCurrency(t.totalSpend, currency)}
+                        </Badge>
+                      ))
+                    )}
                   </div>
-                  {tenantSummaries.length > 4 && (
+                  {!isSpecificTenant && tenantSummaries.length > 4 && (
                     <button
                       onClick={() => setShowAllTenants(!showAllTenants)}
                       className="flex items-center gap-1 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"

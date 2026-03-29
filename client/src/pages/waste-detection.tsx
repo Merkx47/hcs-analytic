@@ -49,6 +49,7 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { TenantFilter } from '@/components/layout/tenant-filter';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
@@ -448,14 +449,17 @@ export default function WasteDetection() {
         {/* ============================================================
             1. HEADER
             ============================================================ */}
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <MdDelete className="h-6 w-6 text-red-500" />
-            Waste Detection
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Identify idle, orphaned, and oversized resources to reduce unnecessary cloud spend
-          </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <MdDelete className="h-6 w-6 text-red-500" />
+              Waste Detection
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Identify idle, orphaned, and oversized resources to reduce unnecessary cloud spend
+            </p>
+          </div>
+          <TenantFilter />
         </div>
 
         {/* ============================================================

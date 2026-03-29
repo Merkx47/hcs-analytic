@@ -43,6 +43,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
+import { TenantFilter } from '@/components/layout/tenant-filter';
 
 const typeIcons: Record<RecommendationType, typeof MdDns> = {
   rightsizing: MdSpeed,
@@ -240,6 +241,7 @@ export default function Recommendations() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <TenantFilter />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" data-testid="button-export">

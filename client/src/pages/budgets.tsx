@@ -1,4 +1,5 @@
 import { MdAdd, MdApartment, MdCheckCircle, MdChevronRight, MdDelete, MdEdit, MdLayers, MdPublic, MdTrackChanges, MdTrendingUp, MdWarning } from 'react-icons/md';
+import { TenantFilter } from '@/components/layout/tenant-filter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -459,13 +460,15 @@ export default function Budgets() {
               <p className="text-sm text-muted-foreground">Create and monitor budgets across tenants and VDCs</p>
             </div>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
-                <MdAdd className="h-4 w-4 mr-2" />
-                Create Budget
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-3">
+            <TenantFilter />
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                  <MdAdd className="h-4 w-4 mr-2" />
+                  Create Budget
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>Create New Budget</DialogTitle>
@@ -705,6 +708,7 @@ export default function Budgets() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </motion.div>
 
         {/* Edit Dialog */}

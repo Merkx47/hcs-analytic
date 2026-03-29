@@ -31,6 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { TenantFilter } from '@/components/layout/tenant-filter';
 
 const CHART_COLORS = [
   '#E53935', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA',
@@ -55,14 +56,12 @@ export default function Analytics() {
   const {
     currency, selectedTenantId, selectedRegion, dateRange,
     selectedServices, setSelectedServices,
-    selectedRegions, setSelectedRegions,
   } = useFinOpsStore();
 
   const [comparisonPeriod, setComparisonPeriod] = useState<ComparisonPeriod>('month');
   const [drilldownService, setDrilldownService] = useState<HuaweiService | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [serviceFilterOpen, setServiceFilterOpen] = useState(false);
-  const [regionFilterOpen, setRegionFilterOpen] = useState(false);
   // Gap #12: Selectable time period for trend chart
   const [trendWindow, setTrendWindow] = useState<7 | 14 | 30 | 90>(14);
   // Gap #16: Comparison mode (time periods vs tenants vs regions)
@@ -80,41 +79,22 @@ export default function Analytics() {
 
   // ---- Feature #17: Apply filters to data ----
   const filteredServiceBreakdown = useMemo(() => {
-    let data = serviceBreakdown;
-    if (selectedServices.length > 0) {
-      data = data.filter(s => selectedServices.includes(s.service));
-    }
-    if (selectedRegions.length > 0) {
-      // When region filter is active, we scale service costs proportionally
-      // based on the selected regions' share of total spend
-      const totalRegionCost = regionBreakdown.reduce((sum, r) => sum + r.cost, 0);
-      const selectedRegionCost = regionBreakdown
-        .filter(r => selectedRegions.includes(r.region))
-        .reduce((sum, r) => sum + r.cost, 0);
-      const regionRatio = totalRegionCost > 0 ? selectedRegionCost / totalRegionCost : 1;
-      data = data.map(s => ({ ...s, cost: s.cost * regionRatio }));
-    }
-    return data;
-  }, [serviceBreakdown, selectedServices, selectedRegions, regionBreakdown]);
+    if (selectedServices.length === 0) return serviceBreakdown;
+    return serviceBreakdown.filter(s => selectedServices.includes(s.service));
+  }, [serviceBreakdown, selectedServices]);
 
   const filteredRegionBreakdown = useMemo(() => {
-    let data = regionBreakdown;
-    if (selectedRegions.length > 0) {
-      data = data.filter(r => selectedRegions.includes(r.region));
-    }
-    if (selectedServices.length > 0) {
-      const totalServiceCost = serviceBreakdown.reduce((sum, s) => sum + s.cost, 0);
-      const selectedServiceCost = serviceBreakdown
-        .filter(s => selectedServices.includes(s.service))
-        .reduce((sum, s) => sum + s.cost, 0);
-      const serviceRatio = totalServiceCost > 0 ? selectedServiceCost / totalServiceCost : 1;
-      data = data.map(r => ({ ...r, cost: r.cost * serviceRatio }));
-    }
-    return data;
-  }, [regionBreakdown, selectedRegions, selectedServices, serviceBreakdown]);
+    if (selectedServices.length === 0) return regionBreakdown;
+    const totalServiceCost = serviceBreakdown.reduce((sum, s) => sum + s.cost, 0);
+    const selectedServiceCost = serviceBreakdown
+      .filter(s => selectedServices.includes(s.service))
+      .reduce((sum, s) => sum + s.cost, 0);
+    const serviceRatio = totalServiceCost > 0 ? selectedServiceCost / totalServiceCost : 1;
+    return regionBreakdown.map(r => ({ ...r, cost: r.cost * serviceRatio }));
+  }, [regionBreakdown, selectedServices, serviceBreakdown]);
 
   const filteredKpis = useMemo(() => {
-    if (selectedServices.length === 0 && selectedRegions.length === 0) return kpis;
+    if (selectedServices.length === 0) return kpis;
     const totalOriginal = serviceBreakdown.reduce((s, b) => s + b.cost, 0);
     const totalFiltered = filteredServiceBreakdown.reduce((s, b) => s + b.cost, 0);
     const ratio = totalOriginal > 0 ? totalFiltered / totalOriginal : 1;
@@ -122,7 +102,7 @@ export default function Analytics() {
       ...kpis,
       totalSpend: kpis.totalSpend * ratio,
     };
-  }, [kpis, serviceBreakdown, filteredServiceBreakdown, selectedServices, selectedRegions]);
+  }, [kpis, serviceBreakdown, filteredServiceBreakdown, selectedServices]);
 
   // ---- Gap #10: Cost by Tenant data ----
   const tenantSummaries = useMemo(() => generateTenantSummaries(), []);
@@ -363,24 +343,11 @@ export default function Analytics() {
     );
   }, [selectedServices, setSelectedServices]);
 
-  // Toggle region in filter
-  const toggleRegionFilter = useCallback((region: HuaweiRegion) => {
-    setSelectedRegions(
-      selectedRegions.includes(region)
-        ? selectedRegions.filter(r => r !== region)
-        : [region]
-    );
-  }, [selectedRegions, setSelectedRegions]);
-
   const allServices = useMemo(() => {
     return serviceBreakdown.map(s => s.service);
   }, [serviceBreakdown]);
 
-  const allRegions = useMemo(() => {
-    return regionBreakdown.map(r => r.region);
-  }, [regionBreakdown]);
-
-  const activeFilterCount = selectedServices.length + selectedRegions.length;
+  const activeFilterCount = selectedServices.length;
 
   return (
     <ScrollArea className="h-full">
@@ -401,6 +368,7 @@ export default function Analytics() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <TenantFilter />
             {/* Feature #17: FilterList Controls */}
             <Popover open={serviceFilterOpen} onOpenChange={setServiceFilterOpen}>
               <PopoverTrigger asChild>
@@ -450,50 +418,11 @@ export default function Analytics() {
               </PopoverContent>
             </Popover>
 
-            <Popover open={regionFilterOpen} onOpenChange={setRegionFilterOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn(selectedRegions.length > 0 && "border-primary text-primary")}>
-                  <MdLocationOn className="h-4 w-4 mr-2" />
-                  Region
-                  {selectedRegions.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">1</Badge>
-                  )}
-                  <MdExpandMore className="h-3 w-3 ml-1" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="end">
-                <div className="flex items-center justify-between mb-2 px-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">FilterList by Region</p>
-                  {selectedRegions.length > 0 && (
-                    <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setSelectedRegions([])}>
-                      Clear
-                    </Button>
-                  )}
-                </div>
-                <div className="space-y-0.5">
-                  {allRegions.map(region => (
-                    <button
-                      key={region}
-                      onClick={() => toggleRegionFilter(region)}
-                      className={cn(
-                        "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors text-left",
-                        selectedRegions.includes(region)
-                          ? "bg-primary/10 text-primary"
-                          : "hover:bg-muted/50 text-foreground"
-                      )}
-                    >
-                      <span>{regionNames[region]}</span>
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-
             {activeFilterCount > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => { setSelectedServices([]); setSelectedRegions([]); }}
+                onClick={() => setSelectedServices([])}
                 className="text-muted-foreground"
               >
                 <MdClose className="h-4 w-4 mr-1" />
@@ -521,14 +450,6 @@ export default function Analytics() {
               <Badge key={s} variant="secondary" className="text-xs gap-1">
                 {s}
                 <button onClick={() => toggleServiceFilter(s)} className="ml-1 hover:text-destructive">
-                  <MdClose className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            {selectedRegions.map(r => (
-              <Badge key={r} variant="secondary" className="text-xs gap-1">
-                {regionNames[r]}
-                <button onClick={() => toggleRegionFilter(r)} className="ml-1 hover:text-destructive">
                   <MdClose className="h-3 w-3" />
                 </button>
               </Badge>

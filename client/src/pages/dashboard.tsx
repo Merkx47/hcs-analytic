@@ -11,6 +11,7 @@ import { mockTenants } from '@/lib/mock-data';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { TenantFilter } from '@/components/layout/tenant-filter';
 
 export default function Dashboard() {
   const { selectedTenantId } = useFinOpsStore();
@@ -27,15 +28,18 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="mb-6"
+          className="flex items-center justify-between gap-4 mb-6"
         >
-          <h1 className="text-2xl font-bold text-foreground" data-testid="text-dashboard-title">
-            FinOps Dashboard
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Cloud cost analytics and optimization for{' '}
-            <span className="text-foreground font-medium">{tenantName}</span>
-          </p>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground" data-testid="text-dashboard-title">
+              FinOps Dashboard
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Cloud cost analytics and optimization for{' '}
+              <span className="text-foreground font-medium">{tenantName}</span>
+            </p>
+          </div>
+          <TenantFilter />
         </motion.div>
 
         <div className="space-y-6">
