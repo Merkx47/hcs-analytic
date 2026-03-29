@@ -1,4 +1,4 @@
-import { MdAdd, MdArrowBack, MdCheckCircle, MdClose, MdDelete, MdDns, MdLabel, MdLayers, MdPublic, MdSearch } from 'react-icons/md';
+import { MdAdd, MdArrowBack, MdCheckCircle, MdClose, MdCloud, MdCloudOff, MdDelete, MdDns, MdLabel, MdLayers, MdLock, MdPublic, MdSearch, MdWarning } from 'react-icons/md';
 import { useState, useCallback, useMemo } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useDataStore, type ValueType, type TagKey, type TagGroupScope } from '@/lib/data-store';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useDataStore, type ValueType, type TagKey, type TagGroupScope, type TagSource } from '@/lib/data-store';
 import { useFinOpsStore } from '@/lib/finops-store';
 import { generateResources, generateAllVDCHierarchies, flattenVDCTree } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
@@ -45,11 +51,18 @@ export default function TagGroupForm() {
   const [, editParams] = useRoute('/tags/edit/:id');
   const editId = editParams?.id;
 
-  const { tagGroups, addTagGroup, updateTagGroup, getTagGroup } = useDataStore();
+  const { tagGroups, addTagGroup, updateTagGroup, getTagGroup, getAllTagKeys } = useDataStore();
   const { selectedTenantId, selectedRegion } = useFinOpsStore();
 
   // Load existing group if editing
   const existingGroup = editId ? getTagGroup(editId) : undefined;
+  const isOnlineGroup = existingGroup?.domain === 'online';
+
+  // All existing keys across all groups (for duplicate detection)
+  const allExistingKeys = useMemo(() => getAllTagKeys(), [tagGroups]);
+
+  // Online keys available for import
+  const onlineKeys = useMemo(() => allExistingKeys.filter(k => k.source === 'online'), [allExistingKeys]);
 
   // Form state
   const [formName, setFormName] = useState(existingGroup?.name || '');
@@ -78,8 +91,14 @@ export default function TagGroupForm() {
     return pairs;
   });
 
+  // Key name suggestion dropdown state
+  const [activeKeySuggestion, setActiveKeySuggestion] = useState<string | null>(null);
+
   // Scope search
   const [scopeSearch, setScopeSearch] = useState('');
+
+  // Show import panel
+  const [showImportPanel, setShowImportPanel] = useState(false);
 
   // VDC and resource data for scope selector
   const allVDCHierarchies = useMemo(() => generateAllVDCHierarchies(selectedTenantId), [selectedTenantId]);
@@ -98,20 +117,93 @@ export default function TagGroupForm() {
     return allResources.filter(r => r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)).slice(0, 50);
   }, [allResources, scopeSearch]);
 
+  // ── Duplicate detection ──────────────────────────────────────────
+  const getDuplicateWarning = useCallback((keyName: string, currentTagId: string) => {
+    if (!keyName.trim()) return null;
+    const match = allExistingKeys.find(
+      k => k.key.toLowerCase() === keyName.toLowerCase().trim()
+        && k.id !== currentTagId
+        // Exclude keys from the group currently being edited
+        && k.groupId !== editId
+    );
+    if (!match) return null;
+    return {
+      groupName: match.groupName,
+      groupDomain: match.groupDomain,
+      source: match.source,
+      existingKey: match,
+    };
+  }, [allExistingKeys, editId]);
+
+  // ── Key suggestion filtering ────────────────────────────────────
+  const getKeySuggestions = useCallback((keyName: string) => {
+    if (!keyName.trim()) return [];
+    const q = keyName.toLowerCase().trim();
+    const formTagKeys = formTags.map(t => t.key.toLowerCase());
+    return onlineKeys.filter(
+      k => k.key.toLowerCase().includes(q)
+        && !formTagKeys.includes(k.key.toLowerCase())
+    ).slice(0, 5);
+  }, [onlineKeys, formTags]);
+
   // Tag key helpers
   const addFormTag = useCallback(() => {
     setFormTags(prev => [
       ...prev,
-      { id: `new-${Date.now()}-${prev.length}`, key: '', valueType: 'string', required: true, allowedValues: '', description: '' },
+      { id: `new-${Date.now()}-${prev.length}`, key: '', valueType: 'string', required: true, allowedValues: '', description: '', source: 'offline' as TagSource },
     ]);
   }, []);
 
-  const removeFormTag = useCallback((id: string) => {
-    setFormTags(prev => prev.filter(t => t.id !== id));
+  const importOnlineKey = useCallback((onlineKey: typeof allExistingKeys[0]) => {
+    setFormTags(prev => {
+      // Don't import if already in form
+      if (prev.some(t => t.key.toLowerCase() === onlineKey.key.toLowerCase())) return prev;
+      return [
+        ...prev,
+        {
+          id: `import-${Date.now()}-${onlineKey.id}`,
+          key: onlineKey.key,
+          valueType: onlineKey.valueType,
+          required: onlineKey.required,
+          allowedValues: onlineKey.allowedValues,
+          description: onlineKey.description,
+          source: 'online' as TagSource,
+        },
+      ];
+    });
   }, []);
 
+  const removeFormTag = useCallback((id: string) => {
+    setFormTags(prev => {
+      const tag = prev.find(t => t.id === id);
+      // Can't remove online keys from an online group
+      if (isOnlineGroup && tag?.source === 'online') return prev;
+      return prev.filter(t => t.id !== id);
+    });
+  }, [isOnlineGroup]);
+
   const updateFormTag = useCallback((id: string, field: keyof TagKey, value: string | boolean) => {
-    setFormTags(prev => prev.map(t => (t.id === id ? { ...t, [field]: value } : t)));
+    setFormTags(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      // Online keys are read-only (can only change description)
+      if (t.source === 'online' && field !== 'description' && field !== 'required') return t;
+      return { ...t, [field]: value };
+    }));
+  }, []);
+
+  const applySuggestion = useCallback((tagId: string, suggestion: typeof allExistingKeys[0]) => {
+    setFormTags(prev => prev.map(t => {
+      if (t.id !== tagId) return t;
+      return {
+        ...t,
+        key: suggestion.key,
+        valueType: suggestion.valueType,
+        allowedValues: suggestion.allowedValues,
+        description: suggestion.description,
+        source: 'online' as TagSource,
+      };
+    }));
+    setActiveKeySuggestion(null);
   }, []);
 
   const handleChipKeyDown = useCallback(
@@ -146,6 +238,7 @@ export default function TagGroupForm() {
     setFormTags(prev =>
       prev.map(t => {
         if (t.id !== tagId) return t;
+        if (t.source === 'online') return t;
         const existing = t.allowedValues.split(',').map(s => s.trim()).filter(Boolean);
         return { ...t, allowedValues: existing.filter(v => v !== chipVal).join(',') };
       })
@@ -161,7 +254,7 @@ export default function TagGroupForm() {
 
   // Save
   const handleSave = useCallback(() => {
-    if (!formName.trim()) return;
+    if (!formName.trim() || isOnlineGroup) return;
     const finalTags = formTags.map(t => {
       if (t.valueType === 'json' && jsonPairs[t.id]) {
         const obj: Record<string, string> = {};
@@ -190,7 +283,7 @@ export default function TagGroupForm() {
       });
     }
     setLocation('/tags');
-  }, [editId, existingGroup, formName, formDescription, formColor, formTags, jsonPairs, formScope, formScopeTargets, setLocation, addTagGroup, updateTagGroup]);
+  }, [editId, existingGroup, isOnlineGroup, formName, formDescription, formColor, formTags, jsonPairs, formScope, formScopeTargets, setLocation, addTagGroup, updateTagGroup]);
 
   return (
     <div className="h-full overflow-y-auto">
@@ -202,20 +295,52 @@ export default function TagGroupForm() {
               <MdArrowBack className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-lg font-semibold">{editId ? 'Edit Tag Group' : 'Create Tag Group'}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold">
+                  {isOnlineGroup ? 'View Tag Group' : editId ? 'Edit Tag Group' : 'Create Tag Group'}
+                </h1>
+                {existingGroup?.domain && (
+                  <Badge variant={existingGroup.domain === 'online' ? 'default' : 'secondary'} className={cn('text-[10px] gap-1', existingGroup.domain === 'online' ? 'bg-emerald-600' : '')}>
+                    {existingGroup.domain === 'online' ? <><MdCloud className="h-3 w-3" /> HCS Synced</> : <><MdCloudOff className="h-3 w-3" /> User Created</>}
+                  </Badge>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
-                {editId ? 'Update the tag group configuration and its tag keys.' : 'Define a new tag group with required and optional tag keys.'}
+                {isOnlineGroup
+                  ? 'This group was synced from HCS and is read-only. You can duplicate it to create an editable copy.'
+                  : editId
+                    ? 'Update the tag group configuration and its tag keys.'
+                    : 'Define a new tag group with required and optional tag keys.'}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setLocation('/tags')}>Cancel</Button>
-            <Button onClick={handleSave} disabled={!formName.trim()}>
-              {editId ? 'Save Changes' : 'Create Group'}
+            <Button variant="outline" onClick={() => setLocation('/tags')}>
+              {isOnlineGroup ? 'Back' : 'Cancel'}
             </Button>
+            {!isOnlineGroup && (
+              <Button onClick={handleSave} disabled={!formName.trim()}>
+                {editId ? 'Save Changes' : 'Create Group'}
+              </Button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Read-only banner for online groups */}
+      {isOnlineGroup && (
+        <div className="max-w-5xl mx-auto px-6 pt-4">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200">
+            <MdLock className="h-5 w-5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Read-only — synced from Huawei Cloud</p>
+              <p className="text-xs opacity-80">
+                Online tag groups are managed by the ingestion pipeline. To customize, duplicate this group to create an offline copy.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
         {/* === Section 1: Basic Info === */}
@@ -232,6 +357,7 @@ export default function TagGroupForm() {
                     value={formName}
                     onChange={e => setFormName(e.target.value)}
                     className="h-10"
+                    disabled={isOnlineGroup}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -243,6 +369,7 @@ export default function TagGroupForm() {
                     onChange={e => setFormDescription(e.target.value)}
                     rows={2}
                     className="resize-none"
+                    disabled={isOnlineGroup}
                   />
                 </div>
               </div>
@@ -252,11 +379,13 @@ export default function TagGroupForm() {
                   {GROUP_COLORS.map(c => (
                     <button
                       key={c}
+                      disabled={isOnlineGroup}
                       className={cn(
                         'h-8 w-8 rounded-full transition-all',
                         formColor === c
                           ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110'
-                          : 'hover:scale-105 opacity-70 hover:opacity-100'
+                          : 'hover:scale-105 opacity-70 hover:opacity-100',
+                        isOnlineGroup && 'cursor-not-allowed'
                       )}
                       style={{ backgroundColor: c }}
                       onClick={() => setFormColor(c)}
@@ -273,233 +402,393 @@ export default function TagGroupForm() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Tag Keys</h2>
-              <Button variant="outline" size="sm" onClick={addFormTag}>
-                <MdAdd className="h-3.5 w-3.5 mr-1" /> Add Key
-              </Button>
+              {!isOnlineGroup && (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setShowImportPanel(!showImportPanel)} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/30">
+                    <MdCloud className="h-3.5 w-3.5 mr-1" /> Import from HCS
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={addFormTag}>
+                    <MdAdd className="h-3.5 w-3.5 mr-1" /> Add Key
+                  </Button>
+                </div>
+              )}
             </div>
+
+            {/* Import from HCS panel */}
+            {showImportPanel && !isOnlineGroup && (
+              <div className="mb-4 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">Import Online Tag Keys</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      Select tag keys synced from HCS to add to this group. Imported keys auto-fill their type and allowed values.
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowImportPanel(false)}>
+                    <MdClose className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid gap-1.5 max-h-[200px] overflow-y-auto">
+                  {onlineKeys.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No online tag keys available to import.</p>
+                  ) : (
+                    onlineKeys.map(ok => {
+                      const alreadyInForm = formTags.some(t => t.key.toLowerCase() === ok.key.toLowerCase());
+                      return (
+                        <button
+                          key={ok.id}
+                          disabled={alreadyInForm}
+                          onClick={() => importOnlineKey(ok)}
+                          className={cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors text-sm',
+                            alreadyInForm
+                              ? 'opacity-40 cursor-not-allowed bg-muted/50'
+                              : 'hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+                          )}
+                        >
+                          <MdCloud className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-mono text-xs">{ok.key}</span>
+                            <span className="text-muted-foreground text-xs ml-2">from {ok.groupName}</span>
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">{VALUE_TYPE_LABELS[ok.valueType]}</Badge>
+                          {alreadyInForm ? (
+                            <Badge variant="secondary" className="text-[10px]">Added</Badge>
+                          ) : (
+                            <MdAdd className="h-4 w-4 text-emerald-600" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
 
             {formTags.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-muted-foreground/15 rounded-lg">
                 <MdLabel className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
                 <p className="text-sm text-muted-foreground mb-1">No tag keys defined yet</p>
                 <p className="text-xs text-muted-foreground/70 mb-4">Tag keys define the metadata fields resources must have</p>
-                <Button variant="outline" size="sm" onClick={addFormTag}>
-                  <MdAdd className="h-3.5 w-3.5 mr-1" /> Add First Key
-                </Button>
+                {!isOnlineGroup && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setShowImportPanel(true)} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/30">
+                      <MdCloud className="h-3.5 w-3.5 mr-1" /> Import from HCS
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={addFormTag}>
+                      <MdAdd className="h-3.5 w-3.5 mr-1" /> Add First Key
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
-                {formTags.map((tk, ti) => (
-                  <div key={tk.id} className="rounded-lg border bg-muted/20 p-4 space-y-3 relative">
-                    {/* Key number badge */}
-                    <Badge variant="outline" className="absolute -top-2.5 left-3 bg-background text-[10px] px-2">
-                      KEY {ti + 1}
-                    </Badge>
+                {formTags.map((tk, ti) => {
+                  const isOnlineKey = tk.source === 'online';
+                  const duplicateWarning = !isOnlineKey ? getDuplicateWarning(tk.key, tk.id) : null;
+                  const suggestions = (!isOnlineKey && activeKeySuggestion === tk.id) ? getKeySuggestions(tk.key) : [];
 
-                    {/* Row 1: Key name, type, delete */}
-                    <div className="grid grid-cols-[1fr,160px,auto] gap-3 items-end pt-1">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Key Name</Label>
-                        <Input
-                          className="h-9 text-sm font-mono"
-                          placeholder="e.g. environment"
-                          value={tk.key}
-                          onChange={e => updateFormTag(tk.id, 'key', e.target.value)}
-                        />
+                  return (
+                    <div
+                      key={tk.id}
+                      className={cn(
+                        'rounded-lg border p-4 space-y-3 relative',
+                        isOnlineKey
+                          ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
+                          : 'bg-muted/20',
+                        duplicateWarning && 'border-amber-300 dark:border-amber-700'
+                      )}
+                    >
+                      {/* Key number badge + source badge */}
+                      <div className="absolute -top-2.5 left-3 flex items-center gap-1.5">
+                        <Badge variant="outline" className="bg-background text-[10px] px-2">
+                          KEY {ti + 1}
+                        </Badge>
+                        {isOnlineKey && (
+                          <Badge className="bg-emerald-600 text-white text-[10px] px-2 gap-1">
+                            <MdCloud className="h-2.5 w-2.5" /> HCS
+                          </Badge>
+                        )}
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Value Type</Label>
-                        <Select value={tk.valueType} onValueChange={(v: ValueType) => updateFormTag(tk.id, 'valueType', v)}>
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(VALUE_TYPE_LABELS).map(([val, label]) => (
-                              <SelectItem key={val} value={val}>
-                                <span className="font-mono text-xs mr-2 opacity-50">{label}</span> {val}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => removeFormTag(tk.id)}>
-                        <MdDelete className="h-4 w-4" />
-                      </Button>
-                    </div>
 
-                    {/* Row 2: Value input based on data type */}
-                    {tk.valueType === 'string' && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Value</Label>
-                        <Input
-                          className="h-9 text-sm"
-                          placeholder="e.g. production-web-01"
-                          value={tk.allowedValues}
-                          onChange={e => updateFormTag(tk.id, 'allowedValues', e.target.value)}
-                        />
-                      </div>
-                    )}
-                    {tk.valueType === 'int' && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Value</Label>
-                        <Input
-                          className="h-9 text-sm font-mono"
-                          type="number"
-                          step="1"
-                          placeholder="e.g. 42"
-                          value={tk.allowedValues}
-                          onChange={e => updateFormTag(tk.id, 'allowedValues', e.target.value)}
-                        />
-                      </div>
-                    )}
-                    {tk.valueType === 'float' && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Value</Label>
-                        <Input
-                          className="h-9 text-sm font-mono"
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g. 3.14"
-                          value={tk.allowedValues}
-                          onChange={e => updateFormTag(tk.id, 'allowedValues', e.target.value)}
-                        />
-                      </div>
-                    )}
-                    {tk.valueType === 'date' && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Value</Label>
-                        <Input
-                          className="h-9 text-sm"
-                          type="date"
-                          value={tk.allowedValues}
-                          onChange={e => updateFormTag(tk.id, 'allowedValues', e.target.value)}
-                        />
-                      </div>
-                    )}
-                    {tk.valueType === 'bool' && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Value</Label>
-                        <Select value={tk.allowedValues || ''} onValueChange={(v) => updateFormTag(tk.id, 'allowedValues', v)}>
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue placeholder="Select true or false" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="true">true</SelectItem>
-                            <SelectItem value="false">false</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+                      {/* Row 1: Key name, type, delete */}
+                      <div className="grid grid-cols-[1fr,160px,auto] gap-3 items-end pt-1">
+                        <div className="space-y-1 relative">
+                          <Label className="text-xs">Key Name</Label>
+                          <div className="relative">
+                            <Input
+                              className={cn(
+                                'h-9 text-sm font-mono',
+                                isOnlineKey && 'opacity-70 cursor-not-allowed'
+                              )}
+                              placeholder="e.g. environment"
+                              value={tk.key}
+                              onChange={e => updateFormTag(tk.id, 'key', e.target.value)}
+                              onFocus={() => !isOnlineKey && setActiveKeySuggestion(tk.id)}
+                              onBlur={() => setTimeout(() => setActiveKeySuggestion(null), 200)}
+                              disabled={isOnlineKey}
+                            />
+                            {isOnlineKey && <MdLock className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-emerald-600" />}
+                          </div>
 
-                    {/* Row 3: Description */}
-                    <div className="space-y-1">
-                      <Label className="text-xs">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <Input
-                        className="h-8 text-xs"
-                        placeholder="Brief description of this tag key..."
-                        value={tk.description}
-                        onChange={e => updateFormTag(tk.id, 'description', e.target.value)}
-                      />
-                    </div>
+                          {/* Key name suggestions dropdown */}
+                          {suggestions.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-background border rounded-lg shadow-lg overflow-hidden">
+                              <div className="px-2 py-1.5 text-[10px] text-muted-foreground uppercase tracking-wider bg-muted/50 border-b flex items-center gap-1">
+                                <MdCloud className="h-3 w-3 text-emerald-600" /> Matching HCS keys — click to auto-fill
+                              </div>
+                              {suggestions.map(s => (
+                                <button
+                                  key={s.id}
+                                  onMouseDown={(e) => { e.preventDefault(); applySuggestion(tk.id, s); }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                                >
+                                  <span className="font-mono text-xs font-medium">{s.key}</span>
+                                  <Badge variant="outline" className="text-[10px]">{VALUE_TYPE_LABELS[s.valueType]}</Badge>
+                                  <span className="text-[10px] text-muted-foreground ml-auto">{s.groupName}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Value Type</Label>
+                          <Select value={tk.valueType} onValueChange={(v: ValueType) => updateFormTag(tk.id, 'valueType', v)} disabled={isOnlineKey}>
+                            <SelectTrigger className={cn('h-9 text-sm', isOnlineKey && 'opacity-70 cursor-not-allowed')}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(VALUE_TYPE_LABELS).map(([val, label]) => (
+                                <SelectItem key={val} value={val}>
+                                  <span className="font-mono text-xs mr-2 opacity-50">{label}</span> {val}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {isOnlineKey && isOnlineGroup ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="h-9 w-9 flex items-center justify-center text-muted-foreground">
+                                  <MdLock className="h-4 w-4" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>HCS-synced keys cannot be removed</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => removeFormTag(tk.id)}>
+                            <MdDelete className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
 
-                    {/* Enum/List chip input */}
-                    {(tk.valueType === 'enum' || tk.valueType === 'list') && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Allowed Values</Label>
-                        <div className="flex flex-wrap items-center gap-1.5 p-2 border rounded-md bg-background min-h-[36px]">
-                          {tk.allowedValues && tk.allowedValues.split(',').filter(Boolean).map(chip => (
-                            <Badge key={chip} variant="secondary" className="text-xs gap-1 pr-1 h-6">
-                              {chip.trim()}
-                              <button onClick={() => removeChip(tk.id, chip.trim())} className="hover:text-destructive">
-                                <MdClose className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
+                      {/* Duplicate key warning */}
+                      {duplicateWarning && (
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                          <MdWarning className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-xs">
+                            <p className="font-medium text-amber-800 dark:text-amber-200">
+                              Key "{tk.key}" already exists in "{duplicateWarning.groupName}"
+                              {duplicateWarning.groupDomain === 'online' && (
+                                <Badge className="ml-1.5 bg-emerald-600 text-white text-[9px] px-1.5 py-0">HCS</Badge>
+                              )}
+                            </p>
+                            <p className="text-amber-600 dark:text-amber-400 mt-0.5">
+                              Creating a duplicate key may cause confusion. Consider using the existing key or choosing a different name.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Row 2: Value input based on data type */}
+                      {tk.valueType === 'string' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Value</Label>
                           <Input
-                            className="h-6 text-xs border-none shadow-none p-0 flex-1 min-w-[100px] focus-visible:ring-0"
-                            placeholder="Type and press Enter..."
-                            value={chipInputValues[tk.id] || ''}
-                            onChange={e => setChipInputValues(prev => ({ ...prev, [tk.id]: e.target.value }))}
-                            onKeyDown={e => handleChipKeyDown(tk.id, e)}
+                            className={cn('h-9 text-sm', isOnlineKey && 'opacity-70 cursor-not-allowed')}
+                            placeholder="e.g. production-web-01"
+                            value={tk.allowedValues}
+                            onChange={e => updateFormTag(tk.id, 'allowedValues', e.target.value)}
+                            disabled={isOnlineKey}
                           />
                         </div>
-                      </div>
-                    )}
-
-                    {/* JSON key-value builder */}
-                    {tk.valueType === 'json' && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs">Key-Value Pairs</Label>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 text-[10px] px-2"
-                            onClick={() => {
-                              setJsonPairs(prev => ({
-                                ...prev,
-                                [tk.id]: [...(prev[tk.id] || []), { key: '', value: '' }],
-                              }));
-                            }}
-                          >
-                            <MdAdd className="h-3 w-3 mr-1" /> Add Pair
-                          </Button>
+                      )}
+                      {tk.valueType === 'int' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Value</Label>
+                          <Input
+                            className={cn('h-9 text-sm font-mono', isOnlineKey && 'opacity-70 cursor-not-allowed')}
+                            type="number"
+                            step="1"
+                            placeholder="e.g. 42"
+                            value={tk.allowedValues}
+                            onChange={e => updateFormTag(tk.id, 'allowedValues', e.target.value)}
+                            disabled={isOnlineKey}
+                          />
                         </div>
+                      )}
+                      {tk.valueType === 'float' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Value</Label>
+                          <Input
+                            className={cn('h-9 text-sm font-mono', isOnlineKey && 'opacity-70 cursor-not-allowed')}
+                            type="number"
+                            step="0.01"
+                            placeholder="e.g. 3.14"
+                            value={tk.allowedValues}
+                            onChange={e => updateFormTag(tk.id, 'allowedValues', e.target.value)}
+                            disabled={isOnlineKey}
+                          />
+                        </div>
+                      )}
+                      {tk.valueType === 'date' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Value</Label>
+                          <Input
+                            className={cn('h-9 text-sm', isOnlineKey && 'opacity-70 cursor-not-allowed')}
+                            type="date"
+                            value={tk.allowedValues}
+                            onChange={e => updateFormTag(tk.id, 'allowedValues', e.target.value)}
+                            disabled={isOnlineKey}
+                          />
+                        </div>
+                      )}
+                      {tk.valueType === 'bool' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Value</Label>
+                          <Select value={tk.allowedValues || ''} onValueChange={(v) => updateFormTag(tk.id, 'allowedValues', v)} disabled={isOnlineKey}>
+                            <SelectTrigger className={cn('h-9 text-sm', isOnlineKey && 'opacity-70 cursor-not-allowed')}>
+                              <SelectValue placeholder="Select true or false" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="true">true</SelectItem>
+                              <SelectItem value="false">false</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
-                        {(!jsonPairs[tk.id] || jsonPairs[tk.id].length === 0) && (
-                          <div className="text-center py-3 border border-dashed rounded-md text-xs text-muted-foreground">
-                            No key-value pairs. Click "Add Pair" to start.
-                          </div>
-                        )}
+                      {/* Row 3: Description */}
+                      <div className="space-y-1">
+                        <Label className="text-xs">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                        <Input
+                          className="h-8 text-xs"
+                          placeholder="Brief description of this tag key..."
+                          value={tk.description}
+                          onChange={e => updateFormTag(tk.id, 'description', e.target.value)}
+                        />
+                      </div>
 
+                      {/* Enum/List chip input */}
+                      {(tk.valueType === 'enum' || tk.valueType === 'list') && (
                         <div className="space-y-1.5">
-                          {(jsonPairs[tk.id] || []).map((pair, pi) => (
-                            <div key={pi} className="flex items-center gap-2">
-                              <Input className="h-8 text-xs font-mono flex-1" placeholder="key" value={pair.key}
-                                onChange={e => {
-                                  setJsonPairs(prev => {
-                                    const updated = [...(prev[tk.id] || [])];
-                                    updated[pi] = { ...updated[pi], key: e.target.value };
-                                    return { ...prev, [tk.id]: updated };
-                                  });
-                                }}
+                          <Label className="text-xs">Allowed Values</Label>
+                          <div className={cn(
+                            'flex flex-wrap items-center gap-1.5 p-2 border rounded-md bg-background min-h-[36px]',
+                            isOnlineKey && 'opacity-70'
+                          )}>
+                            {tk.allowedValues && tk.allowedValues.split(',').filter(Boolean).map(chip => (
+                              <Badge key={chip} variant="secondary" className="text-xs gap-1 pr-1 h-6">
+                                {chip.trim()}
+                                {!isOnlineKey && (
+                                  <button onClick={() => removeChip(tk.id, chip.trim())} className="hover:text-destructive">
+                                    <MdClose className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </Badge>
+                            ))}
+                            {!isOnlineKey && (
+                              <Input
+                                className="h-6 text-xs border-none shadow-none p-0 flex-1 min-w-[100px] focus-visible:ring-0"
+                                placeholder="Type and press Enter..."
+                                value={chipInputValues[tk.id] || ''}
+                                onChange={e => setChipInputValues(prev => ({ ...prev, [tk.id]: e.target.value }))}
+                                onKeyDown={e => handleChipKeyDown(tk.id, e)}
                               />
-                              <span className="text-muted-foreground text-xs">:</span>
-                              <Input className="h-8 text-xs font-mono flex-1" placeholder="value" value={pair.value}
-                                onChange={e => {
-                                  setJsonPairs(prev => {
-                                    const updated = [...(prev[tk.id] || [])];
-                                    updated[pi] = { ...updated[pi], value: e.target.value };
-                                    return { ...prev, [tk.id]: updated };
-                                  });
-                                }}
-                              />
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
-                                onClick={() => setJsonPairs(prev => ({ ...prev, [tk.id]: (prev[tk.id] || []).filter((_, i) => i !== pi) }))}
-                              >
-                                <MdClose className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-
-                        {jsonPairs[tk.id] && jsonPairs[tk.id].length > 0 && (
-                          <pre className="text-[10px] bg-muted/50 p-2 rounded font-mono text-muted-foreground overflow-x-auto">
-                            {JSON.stringify(
-                              (jsonPairs[tk.id] || []).reduce<Record<string, string>>((obj, p) => { if (p.key.trim()) obj[p.key.trim()] = p.value; return obj; }, {}),
-                              null, 2
                             )}
-                          </pre>
-                        )}
-                      </div>
-                    )}
+                          </div>
+                        </div>
+                      )}
 
-                  </div>
-                ))}
+                      {/* JSON key-value builder */}
+                      {tk.valueType === 'json' && !isOnlineKey && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs">Key-Value Pairs</Label>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => {
+                                setJsonPairs(prev => ({
+                                  ...prev,
+                                  [tk.id]: [...(prev[tk.id] || []), { key: '', value: '' }],
+                                }));
+                              }}
+                            >
+                              <MdAdd className="h-3 w-3 mr-1" /> Add Pair
+                            </Button>
+                          </div>
 
-                <Button variant="outline" size="sm" onClick={addFormTag} className="w-full border-dashed">
-                  <MdAdd className="h-3.5 w-3.5 mr-1" /> Add Another Key
-                </Button>
+                          {(!jsonPairs[tk.id] || jsonPairs[tk.id].length === 0) && (
+                            <div className="text-center py-3 border border-dashed rounded-md text-xs text-muted-foreground">
+                              No key-value pairs. Click "Add Pair" to start.
+                            </div>
+                          )}
+
+                          <div className="space-y-1.5">
+                            {(jsonPairs[tk.id] || []).map((pair, pi) => (
+                              <div key={pi} className="flex items-center gap-2">
+                                <Input className="h-8 text-xs font-mono flex-1" placeholder="key" value={pair.key}
+                                  onChange={e => {
+                                    setJsonPairs(prev => {
+                                      const updated = [...(prev[tk.id] || [])];
+                                      updated[pi] = { ...updated[pi], key: e.target.value };
+                                      return { ...prev, [tk.id]: updated };
+                                    });
+                                  }}
+                                />
+                                <span className="text-muted-foreground text-xs">:</span>
+                                <Input className="h-8 text-xs font-mono flex-1" placeholder="value" value={pair.value}
+                                  onChange={e => {
+                                    setJsonPairs(prev => {
+                                      const updated = [...(prev[tk.id] || [])];
+                                      updated[pi] = { ...updated[pi], value: e.target.value };
+                                      return { ...prev, [tk.id]: updated };
+                                    });
+                                  }}
+                                />
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
+                                  onClick={() => setJsonPairs(prev => ({ ...prev, [tk.id]: (prev[tk.id] || []).filter((_, i) => i !== pi) }))}
+                                >
+                                  <MdClose className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {jsonPairs[tk.id] && jsonPairs[tk.id].length > 0 && (
+                            <pre className="text-[10px] bg-muted/50 p-2 rounded font-mono text-muted-foreground overflow-x-auto">
+                              {JSON.stringify(
+                                (jsonPairs[tk.id] || []).reduce<Record<string, string>>((obj, p) => { if (p.key.trim()) obj[p.key.trim()] = p.value; return obj; }, {}),
+                                null, 2
+                              )}
+                            </pre>
+                          )}
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
+
+                {!isOnlineGroup && (
+                  <Button variant="outline" size="sm" onClick={addFormTag} className="w-full border-dashed">
+                    <MdAdd className="h-3.5 w-3.5 mr-1" /> Add Another Key
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
@@ -519,12 +808,14 @@ export default function TagGroupForm() {
               ].map(opt => (
                 <button
                   key={opt.value}
+                  disabled={isOnlineGroup}
                   onClick={() => { setFormScope(opt.value); setFormScopeTargets([]); setScopeSearch(''); }}
                   className={cn(
                     'p-4 rounded-lg border text-left transition-all',
                     formScope === opt.value
                       ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'
+                      : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30',
+                    isOnlineGroup && 'cursor-not-allowed opacity-70'
                   )}
                 >
                   <opt.icon className={cn('h-5 w-5 mb-2', formScope === opt.value ? 'text-primary' : 'text-muted-foreground')} />
@@ -535,7 +826,7 @@ export default function TagGroupForm() {
             </div>
 
             {/* VDC selector */}
-            {formScope === 'vdc' && (
+            {formScope === 'vdc' && !isOnlineGroup && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
@@ -611,7 +902,7 @@ export default function TagGroupForm() {
             )}
 
             {/* Resource selector */}
-            {formScope === 'resource' && (
+            {formScope === 'resource' && !isOnlineGroup && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
@@ -704,6 +995,9 @@ export default function TagGroupForm() {
         <div className="flex items-center justify-between pb-6">
           <p className="text-xs text-muted-foreground">
             {formTags.length} key{formTags.length !== 1 ? 's' : ''} defined
+            {formTags.filter(t => t.source === 'online').length > 0 && (
+              <span> &middot; {formTags.filter(t => t.source === 'online').length} from HCS</span>
+            )}
             {formTags.filter(t => t.required).length > 0 && (
               <span> &middot; {formTags.filter(t => t.required).length} required</span>
             )}
@@ -712,10 +1006,14 @@ export default function TagGroupForm() {
             )}
           </p>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setLocation('/tags')}>Cancel</Button>
-            <Button onClick={handleSave} disabled={!formName.trim()}>
-              {editId ? 'Save Changes' : 'Create Group'}
+            <Button variant="outline" onClick={() => setLocation('/tags')}>
+              {isOnlineGroup ? 'Back' : 'Cancel'}
             </Button>
+            {!isOnlineGroup && (
+              <Button onClick={handleSave} disabled={!formName.trim()}>
+                {editId ? 'Save Changes' : 'Create Group'}
+              </Button>
+            )}
           </div>
         </div>
       </div>

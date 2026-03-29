@@ -1,4 +1,4 @@
-import { MdAdd, MdCheckCircle, MdClose, MdContentCopy, MdDelete, MdDescription, MdDownload, MdEdit, MdInsertDriveFile, MdLabel, MdLayers, MdSearch, MdTableChart, MdVerifiedUser, MdWarning } from 'react-icons/md';
+import { MdAdd, MdCheckCircle, MdClose, MdCloud, MdCloudOff, MdContentCopy, MdDelete, MdDescription, MdDownload, MdEdit, MdInsertDriveFile, MdLabel, MdLayers, MdSearch, MdTableChart, MdVerifiedUser, MdVisibility, MdWarning } from 'react-icons/md';
 import { useState, useMemo, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +49,7 @@ import { useDataStore } from '@/lib/data-store';
 import { mockTenants, generateResources } from '@/lib/mock-data';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { TenantFilter } from '@/components/layout/tenant-filter';
 import {
   PieChart,
   Pie,
@@ -402,16 +403,19 @@ export default function TagGovernancePage() {
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <MdLabel className="h-6 w-6 text-primary" />
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <MdLabel className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Tag Governance</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage tag groups, enforce compliance, and track violations across HCS resources
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">Tag Governance</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage tag groups, enforce compliance, and track violations across HCS resources
-          </p>
-        </div>
+        <TenantFilter />
       </div>
 
       {/* KPI Cards */}
@@ -504,7 +508,12 @@ export default function TagGovernancePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 + gi * 0.06, duration: 0.35 }}
                 >
-                  <Card className="bg-background border border-border/60 h-full flex flex-col shadow-sm hover:shadow-md hover:border-border hover:-translate-y-0.5 transition-all duration-200 group/card">
+                  <Card className={cn(
+                    "bg-background border h-full flex flex-col shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group/card",
+                    group.domain === 'online'
+                      ? 'border-emerald-200 dark:border-emerald-800/60 hover:border-emerald-300'
+                      : 'border-border/60 hover:border-border'
+                  )}>
                     <CardContent className="p-5 flex flex-col flex-1 gap-3">
                       {/* Group header */}
                       <div className="flex items-start gap-3">
@@ -513,7 +522,18 @@ export default function TagGovernancePage() {
                           style={{ backgroundColor: group.color, boxShadow: `0 0 8px ${group.color}40` }}
                         />
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm leading-tight">{group.name}</h3>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-semibold text-sm leading-tight">{group.name}</h3>
+                            <Badge
+                              variant={group.domain === 'online' ? 'default' : 'secondary'}
+                              className={cn(
+                                'text-[9px] px-1.5 h-4 gap-0.5',
+                                group.domain === 'online' ? 'bg-emerald-600 hover:bg-emerald-600' : ''
+                              )}
+                            >
+                              {group.domain === 'online' ? <><MdCloud className="h-2.5 w-2.5" /> HCS</> : <><MdCloudOff className="h-2.5 w-2.5" /> USER</>}
+                            </Badge>
+                          </div>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{group.description}</p>
                         </div>
                       </div>
@@ -524,8 +544,12 @@ export default function TagGovernancePage() {
                           <div key={tk.id} className="flex items-center gap-1">
                             <Badge
                               variant="secondary"
-                              className="text-[11px] py-0.5 px-2 font-mono bg-muted/80"
+                              className={cn(
+                                "text-[11px] py-0.5 px-2 font-mono",
+                                tk.source === 'online' ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200' : 'bg-muted/80'
+                              )}
                             >
+                              {tk.source === 'online' && <MdCloud className="h-2.5 w-2.5 mr-1 opacity-60" />}
                               {tk.key}
                               <span className="ml-1.5 opacity-50 text-[10px] font-semibold">{VALUE_TYPE_LABELS[tk.valueType]}</span>
                             </Badge>
@@ -570,36 +594,44 @@ export default function TagGovernancePage() {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateTagGroup(group.id)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateTagGroup(group.id)} title="Duplicate as offline group">
                             <MdContentCopy className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setLocation(`/tags/edit/${group.id}`)}>
-                            <MdEdit className="h-3.5 w-3.5" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                                <MdDelete className="h-3.5 w-3.5" />
+                          {group.domain === 'online' ? (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setLocation(`/tags/edit/${group.id}`)} title="View (read-only)">
+                              <MdVisibility className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setLocation(`/tags/edit/${group.id}`)}>
+                                <MdEdit className="h-3.5 w-3.5" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Tag Group</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{group.name}"? This will remove the tag group and its {group.tags.length} tag key{group.tags.length !== 1 ? 's' : ''}. This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  onClick={() => deleteTagGroup(group.id)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                    <MdDelete className="h-3.5 w-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Tag Group</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{group.name}"? This will remove the tag group and its {group.tags.length} tag key{group.tags.length !== 1 ? 's' : ''}. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      onClick={() => deleteTagGroup(group.id)}
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
                         </div>
                       </div>
                     </CardContent>

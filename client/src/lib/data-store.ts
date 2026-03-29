@@ -52,6 +52,7 @@ export type Language = 'en' | 'fr' | 'ar' | 'zh' | 'pt';
 // Tag Governance types
 export type ValueType = 'string' | 'int' | 'float' | 'bool' | 'date' | 'json' | 'list' | 'enum';
 export type TagGroupScope = 'all' | 'vdc' | 'resource';
+export type TagSource = 'online' | 'offline';
 
 export interface TagKey {
   id: string;
@@ -60,6 +61,7 @@ export interface TagKey {
   required: boolean;
   allowedValues: string;
   description: string;
+  source: TagSource;
 }
 
 export interface TagGroup {
@@ -72,6 +74,7 @@ export interface TagGroup {
   scopeTargets: string[];
   appliedTo: number;
   createdAt: string;
+  domain: TagSource;
 }
 
 export type ExchangeRates = Record<Currency, number>;
@@ -297,11 +300,12 @@ interface DataStore {
 
   // Tag Groups
   tagGroups: TagGroup[];
-  addTagGroup: (group: Omit<TagGroup, 'id' | 'createdAt' | 'appliedTo'>) => TagGroup;
+  addTagGroup: (group: Omit<TagGroup, 'id' | 'createdAt' | 'appliedTo' | 'domain'>) => TagGroup;
   updateTagGroup: (id: string, updates: Partial<TagGroup>) => void;
   deleteTagGroup: (id: string) => void;
   duplicateTagGroup: (id: string) => void;
   getTagGroup: (id: string) => TagGroup | undefined;
+  getAllTagKeys: () => Array<TagKey & { groupId: string; groupName: string; groupDomain: TagSource }>;
 }
 
 export const useDataStore = create<DataStore>((set, get) => ({
@@ -677,59 +681,83 @@ export const useDataStore = create<DataStore>((set, get) => ({
 
   // Tag Groups
   tagGroups: [
+    // ── Online groups (synced from HCS by ingestion) ─────────────────
+    {
+      id: 'grp-online-1', name: 'Enterprise Project', description: 'HCS enterprise project tags synced from Huawei cloud', color: '#546E7A',
+      tags: [
+        { id: 'tk-ol-1', key: '_sys_enterprise_project_id', valueType: 'string', required: false, allowedValues: '', description: 'HCS enterprise project UUID', source: 'online' as TagSource },
+        { id: 'tk-ol-2', key: '_sys_enterprise_project_name', valueType: 'string', required: false, allowedValues: '', description: 'HCS enterprise project display name', source: 'online' as TagSource },
+      ],
+      scope: 'all', scopeTargets: [], appliedTo: 489, createdAt: '2025-06-01', domain: 'online' as TagSource,
+    },
+    {
+      id: 'grp-online-2', name: 'Environment', description: 'Environment classification synced from Huawei cloud', color: '#1E88E5',
+      tags: [
+        { id: 'tk-ol-3', key: 'environment', valueType: 'enum', required: false, allowedValues: 'production,staging,development', description: 'Deployment environment from HCS', source: 'online' as TagSource },
+      ],
+      scope: 'all', scopeTargets: [], appliedTo: 378, createdAt: '2025-06-01', domain: 'online' as TagSource,
+    },
+    {
+      id: 'grp-online-3', name: 'Department', description: 'Department tags synced from Huawei cloud', color: '#6D4C41',
+      tags: [
+        { id: 'tk-ol-4', key: 'department', valueType: 'string', required: false, allowedValues: '', description: 'Department name from HCS', source: 'online' as TagSource },
+      ],
+      scope: 'all', scopeTargets: [], appliedTo: 265, createdAt: '2025-06-01', domain: 'online' as TagSource,
+    },
+    // ── Offline groups (user-created) ────────────────────────────────
     {
       id: 'grp-1', name: 'Environment Classification', description: 'Classify resources by deployment environment stage', color: '#1E88E5',
       tags: [
-        { id: 'tk-1', key: 'environment', valueType: 'enum', required: true, allowedValues: 'production,staging,development,testing,sandbox', description: 'Deployment stage' },
-        { id: 'tk-2', key: 'tier', valueType: 'enum', required: false, allowedValues: 'frontend,backend,data,infra', description: 'Application tier' },
-        { id: 'tk-3', key: 'criticality', valueType: 'enum', required: false, allowedValues: 'critical,high,medium,low', description: 'Business criticality level' },
+        { id: 'tk-1', key: 'environment', valueType: 'enum', required: true, allowedValues: 'production,staging,development,testing,sandbox', description: 'Deployment stage', source: 'offline' as TagSource },
+        { id: 'tk-2', key: 'tier', valueType: 'enum', required: false, allowedValues: 'frontend,backend,data,infra', description: 'Application tier', source: 'offline' as TagSource },
+        { id: 'tk-3', key: 'criticality', valueType: 'enum', required: false, allowedValues: 'critical,high,medium,low', description: 'Business criticality level', source: 'offline' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 312, createdAt: '2025-08-14',
+      scope: 'all', scopeTargets: [], appliedTo: 312, createdAt: '2025-08-14', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-2', name: 'Cost Attribution', description: 'Track cost allocation across business units and budgets', color: '#43A047',
       tags: [
-        { id: 'tk-4', key: 'cost_center', valueType: 'string', required: true, allowedValues: '', description: 'Finance cost center code' },
-        { id: 'tk-5', key: 'budget_code', valueType: 'string', required: false, allowedValues: '', description: 'Annual budget allocation code' },
-        { id: 'tk-6', key: 'chargeback_entity', valueType: 'string', required: false, allowedValues: '', description: 'Entity for internal chargeback' },
+        { id: 'tk-4', key: 'cost_center', valueType: 'string', required: true, allowedValues: '', description: 'Finance cost center code', source: 'offline' as TagSource },
+        { id: 'tk-5', key: 'budget_code', valueType: 'string', required: false, allowedValues: '', description: 'Annual budget allocation code', source: 'offline' as TagSource },
+        { id: 'tk-6', key: 'chargeback_entity', valueType: 'string', required: false, allowedValues: '', description: 'Entity for internal chargeback', source: 'offline' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 287, createdAt: '2025-07-22',
+      scope: 'all', scopeTargets: [], appliedTo: 287, createdAt: '2025-07-22', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-3', name: 'Ownership & Access', description: 'Define resource ownership and access responsibility', color: '#FB8C00',
       tags: [
-        { id: 'tk-7', key: 'owner', valueType: 'string', required: true, allowedValues: '', description: 'Primary resource owner email' },
-        { id: 'tk-8', key: 'team', valueType: 'string', required: false, allowedValues: '', description: 'Responsible team name' },
-        { id: 'tk-9', key: 'contact_channel', valueType: 'string', required: false, allowedValues: '', description: 'Slack channel or DL for alerts' },
+        { id: 'tk-7', key: 'owner', valueType: 'string', required: true, allowedValues: '', description: 'Primary resource owner email', source: 'offline' as TagSource },
+        { id: 'tk-8', key: 'team', valueType: 'string', required: false, allowedValues: '', description: 'Responsible team name', source: 'offline' as TagSource },
+        { id: 'tk-9', key: 'contact_channel', valueType: 'string', required: false, allowedValues: '', description: 'Slack channel or DL for alerts', source: 'offline' as TagSource },
       ],
-      scope: 'vdc', scopeTargets: ['VDC-Production', 'VDC-Staging'], appliedTo: 254, createdAt: '2025-09-03',
+      scope: 'vdc', scopeTargets: ['VDC-Production', 'VDC-Staging'], appliedTo: 254, createdAt: '2025-09-03', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-4', name: 'Project Tracking', description: 'Associate resources with projects and initiatives', color: '#8E24AA',
       tags: [
-        { id: 'tk-10', key: 'project', valueType: 'string', required: true, allowedValues: '', description: 'Project name or code' },
-        { id: 'tk-11', key: 'sprint', valueType: 'string', required: false, allowedValues: '', description: 'Current sprint or iteration' },
+        { id: 'tk-10', key: 'project', valueType: 'string', required: true, allowedValues: '', description: 'Project name or code', source: 'offline' as TagSource },
+        { id: 'tk-11', key: 'sprint', valueType: 'string', required: false, allowedValues: '', description: 'Current sprint or iteration', source: 'offline' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 198, createdAt: '2025-10-11',
+      scope: 'all', scopeTargets: [], appliedTo: 198, createdAt: '2025-10-11', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-5', name: 'Compliance & Security', description: 'Tags for regulatory compliance and security classification', color: '#E53935',
       tags: [
-        { id: 'tk-12', key: 'data_classification', valueType: 'enum', required: false, allowedValues: 'public,internal,confidential,restricted', description: 'Data sensitivity level' },
-        { id: 'tk-13', key: 'compliance_framework', valueType: 'list', required: false, allowedValues: 'ISO27001,SOC2,PCI-DSS,GDPR,NDPR', description: 'Applicable compliance frameworks' },
-        { id: 'tk-14', key: 'department', valueType: 'string', required: true, allowedValues: '', description: 'Business department responsible' },
-        { id: 'tk-15', key: 'audit_trail', valueType: 'bool', required: false, allowedValues: '', description: 'Whether audit logging is enabled' },
+        { id: 'tk-12', key: 'data_classification', valueType: 'enum', required: false, allowedValues: 'public,internal,confidential,restricted', description: 'Data sensitivity level', source: 'offline' as TagSource },
+        { id: 'tk-13', key: 'compliance_framework', valueType: 'list', required: false, allowedValues: 'ISO27001,SOC2,PCI-DSS,GDPR,NDPR', description: 'Applicable compliance frameworks', source: 'offline' as TagSource },
+        { id: 'tk-14', key: 'department', valueType: 'string', required: true, allowedValues: '', description: 'Business department responsible', source: 'offline' as TagSource },
+        { id: 'tk-15', key: 'audit_trail', valueType: 'bool', required: false, allowedValues: '', description: 'Whether audit logging is enabled', source: 'offline' as TagSource },
       ],
-      scope: 'resource', scopeTargets: ['ecs-prod-web-01', 'rds-main-cluster'], appliedTo: 341, createdAt: '2025-06-18',
+      scope: 'resource', scopeTargets: ['ecs-prod-web-01', 'rds-main-cluster'], appliedTo: 341, createdAt: '2025-06-18', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-6', name: 'Lifecycle Management', description: 'Track resource lifecycle and expiration policies', color: '#00ACC1',
       tags: [
-        { id: 'tk-16', key: 'created_date', valueType: 'date', required: false, allowedValues: '', description: 'Resource creation date' },
-        { id: 'tk-17', key: 'expiry_date', valueType: 'date', required: false, allowedValues: '', description: 'Expected resource decommission date' },
-        { id: 'tk-18', key: 'auto_shutdown', valueType: 'bool', required: false, allowedValues: '', description: 'Whether auto-shutdown is enabled' },
+        { id: 'tk-16', key: 'created_date', valueType: 'date', required: false, allowedValues: '', description: 'Resource creation date', source: 'offline' as TagSource },
+        { id: 'tk-17', key: 'expiry_date', valueType: 'date', required: false, allowedValues: '', description: 'Expected resource decommission date', source: 'offline' as TagSource },
+        { id: 'tk-18', key: 'auto_shutdown', valueType: 'bool', required: false, allowedValues: '', description: 'Whether auto-shutdown is enabled', source: 'offline' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 176, createdAt: '2025-11-05',
+      scope: 'all', scopeTargets: [], appliedTo: 176, createdAt: '2025-11-05', domain: 'offline' as TagSource,
     },
   ] as TagGroup[],
 
@@ -737,6 +765,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
     const newGroup: TagGroup = {
       ...groupData,
       id: `grp-${Date.now()}`,
+      domain: 'offline',
       appliedTo: 0,
       createdAt: new Date().toISOString().split('T')[0],
     };
@@ -746,6 +775,11 @@ export const useDataStore = create<DataStore>((set, get) => ({
   },
 
   updateTagGroup: (id, updates) => {
+    const group = get().tagGroups.find(g => g.id === id);
+    if (group?.domain === 'online') {
+      toast({ title: 'Cannot edit', description: 'HCS-synced tag groups are read-only.', variant: 'destructive' });
+      return;
+    }
     set((state) => ({
       tagGroups: state.tagGroups.map(g => g.id === id ? { ...g, ...updates } : g),
     }));
@@ -754,6 +788,10 @@ export const useDataStore = create<DataStore>((set, get) => ({
 
   deleteTagGroup: (id) => {
     const group = get().tagGroups.find(g => g.id === id);
+    if (group?.domain === 'online') {
+      toast({ title: 'Cannot delete', description: 'HCS-synced tag groups are read-only.', variant: 'destructive' });
+      return;
+    }
     set((state) => ({ tagGroups: state.tagGroups.filter(g => g.id !== id) }));
     if (group) toast({ title: 'Tag group deleted', description: `"${group.name}" has been removed.` });
   },
@@ -765,15 +803,20 @@ export const useDataStore = create<DataStore>((set, get) => ({
       ...group,
       id: `grp-${Date.now()}`,
       name: `${group.name} (Copy)`,
-      tags: group.tags.map(t => ({ ...t, id: `tk-${Date.now()}-${t.id}` })),
+      domain: 'offline',
+      tags: group.tags.map(t => ({ ...t, id: `tk-${Date.now()}-${t.id}`, source: 'offline' as TagSource })),
       appliedTo: 0,
       createdAt: new Date().toISOString().split('T')[0],
     };
     set((state) => ({ tagGroups: [...state.tagGroups, dup] }));
-    toast({ title: 'Tag group duplicated', description: `"${dup.name}" has been created.` });
+    toast({ title: 'Tag group duplicated', description: `"${dup.name}" has been created as an offline group.` });
   },
 
   getTagGroup: (id) => {
     return get().tagGroups.find(g => g.id === id);
+  },
+
+  getAllTagKeys: () => {
+    return get().tagGroups.flatMap(g => g.tags.map(t => ({ ...t, groupId: g.id, groupName: g.name, groupDomain: g.domain })));
   },
 }));

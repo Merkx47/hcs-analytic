@@ -1,4 +1,4 @@
-import { MdAccessTime, MdAccountBalanceWallet, MdAccountTree, MdApartment, MdCalendarToday, MdCancel, MdCheckCircle, MdChevronLeft, MdChevronRight, MdClose, MdDns, MdDownload, MdExpandMore, MdFilterList, MdFirstPage, MdFlashOn, MdGridView, MdLabel, MdLastPage, MdLayers, MdLink, MdList, MdMemory, MdRefresh, MdSearch, MdStorage, MdViewSidebar, MdWarning } from 'react-icons/md';
+import { MdAccessTime, MdAccountBalanceWallet, MdAccountTree, MdApartment, MdCalendarToday, MdCancel, MdCheckCircle, MdChevronLeft, MdChevronRight, MdClose, MdCloud, MdCloudOff, MdDns, MdDownload, MdExpandMore, MdFilterList, MdFirstPage, MdFlashOn, MdGridView, MdLabel, MdLastPage, MdLayers, MdLink, MdList, MdMemory, MdRefresh, MdSearch, MdStorage, MdViewSidebar, MdWarning } from 'react-icons/md';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ import {
   getAllVDCIds,
   mockTenants,
 } from '@/lib/mock-data';
+import { TenantFilter } from '@/components/layout/tenant-filter';
 import {
   serviceInfo,
   regionNames,
@@ -65,7 +66,7 @@ import {
 // CONSTANTS & HELPERS
 // =====================================================
 
-const ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
+const ITEMS_PER_PAGE_OPTIONS = [15, 25, 50];
 
 type ViewMode = 'table' | 'thumbnail';
 
@@ -403,11 +404,33 @@ function ResourceDetailDialog({
               <MdLabel className="h-3.5 w-3.5" /> Tags
             </h4>
             <div className="flex flex-wrap gap-1.5">
-              {resource.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
+              {resource.tags.map((tag) => {
+                // Simulate key=value structure and source from flat tag strings
+                // In production, this comes from v_resource_tags_merged with real key/value/source
+                const isOnline = ['production', 'staging', 'dev', 'test'].includes(tag);
+                const tagKey = isOnline ? 'environment' : tag.includes('-') ? tag.split('-')[0] : 'label';
+                return (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className={cn(
+                      'text-xs gap-1.5 pr-2',
+                      isOnline
+                        ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20'
+                        : ''
+                    )}
+                  >
+                    {isOnline ? (
+                      <MdCloud className="h-3 w-3 text-emerald-600" />
+                    ) : (
+                      <MdCloudOff className="h-3 w-3 text-muted-foreground" />
+                    )}
+                    <span className="text-muted-foreground">{tagKey}</span>
+                    <span className="opacity-40">=</span>
+                    <span className="font-medium">{tag}</span>
+                  </Badge>
+                );
+              })}
             </div>
           </div>
 
@@ -728,7 +751,7 @@ export default function Resources() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [tenantFilter, setTenantFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
   const [selectedVDCId, setSelectedVDCId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [detailResource, setDetailResource] = useState<Resource | null>(null);
@@ -969,6 +992,7 @@ export default function Resources() {
               </Badge>
             </div>
             <div className="flex items-center gap-2">
+              <TenantFilter />
               {/* View toggle */}
               <div className="flex items-center bg-muted/50 rounded-md p-0.5 border border-border/50">
                 <Tooltip>
@@ -1064,21 +1088,6 @@ export default function Resources() {
                 <SelectItem value="error">Error</SelectItem>
               </SelectContent>
             </Select>
-            {selectedTenantId === 'all' && (
-              <Select value={tenantFilter} onValueChange={setTenantFilter}>
-                <SelectTrigger className="w-[160px] h-8 text-sm">
-                  <SelectValue placeholder="Tenant" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tenants</SelectItem>
-                  {uniqueTenants.map((tid) => (
-                    <SelectItem key={tid} value={tid}>
-                      {tenantNameMap.get(tid) || tid}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
 
             {/* Summary stats inline */}
             <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
@@ -1122,7 +1131,7 @@ export default function Resources() {
                   transition={{ duration: 0.2 }}
                   className="flex-shrink-0"
                 >
-                  <Card className="bg-card border-border/60 h-full">
+                  <Card className="bg-card border-border/60">
                     <CardHeader className="pb-2 pt-3 px-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
@@ -1140,7 +1149,7 @@ export default function Resources() {
                       </div>
                     </CardHeader>
                     <CardContent className="px-2 pb-2 pt-0">
-                      <ScrollArea className="h-[calc(100vh-280px)]">
+                      <ScrollArea className="max-h-[calc(100vh-280px)]">
                         {/* All Resources button */}
                         <div
                           className={cn(
