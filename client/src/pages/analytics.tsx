@@ -62,16 +62,14 @@ export default function Analytics() {
   const [drilldownService, setDrilldownService] = useState<HuaweiService | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [serviceFilterOpen, setServiceFilterOpen] = useState(false);
-  // Gap #12: Selectable time period for trend chart
-  const [trendWindow, setTrendWindow] = useState<7 | 14 | 30 | 90>(14);
   // Gap #16: Comparison mode (time periods vs tenants vs regions)
   const [comparisonMode, setComparisonMode] = useState<'periods' | 'tenants' | 'regions'>('periods');
 
-  // Get days from the selected date range preset
+  // Get days from the global date range preset
   const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
 
-  // Generate enough data to support the largest trend window (90d) or the global date range, whichever is bigger
-  const trendDays = useMemo(() => Math.max(daysInPeriod, trendWindow), [daysInPeriod, trendWindow]);
+  // Trend data uses the global date range
+  const trendDays = daysInPeriod;
   const costTrend = useMemo(() => generateCostTrend(selectedTenantId, trendDays, selectedRegion), [selectedTenantId, trendDays, selectedRegion]);
   const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedTenantId, daysInPeriod, selectedRegion), [selectedTenantId, daysInPeriod, selectedRegion]);
   const regionBreakdown = useMemo(() => generateRegionBreakdown(selectedTenantId, daysInPeriod, selectedRegion), [selectedTenantId, daysInPeriod, selectedRegion]);
@@ -110,12 +108,12 @@ export default function Analytics() {
   // ---- Gap #12: Windowed trend data (selectable time period) ----
   const windowedTrendData = useMemo(() => {
     const filtered = costTrend.filter(d => d.amount > 0);
-    return filtered.slice(-trendWindow).map((d, i, arr) => ({
+    return filtered.slice(-daysInPeriod).map((d, i, arr) => ({
       ...d,
       previousAmount: arr[i - 1]?.amount || d.amount,
       change: i > 0 ? ((d.amount - arr[i - 1].amount) / arr[i - 1].amount * 100) : 0,
     }));
-  }, [costTrend, trendWindow]);
+  }, [costTrend, daysInPeriod]);
 
   // ---- Gap #14: Forecasted Spend data ----
   const forecastData = useMemo(() => {
@@ -265,7 +263,7 @@ export default function Analytics() {
     })).filter(r => r.cost > 0).sort((a, b) => b.cost - a.cost);
 
     // Generate daily trend for this service (respects selected trend window)
-    const dailyTrend = costTrend.filter(d => d.amount > 0).slice(-trendWindow).map((d, i) => {
+    const dailyTrend = costTrend.filter(d => d.amount > 0).slice(-daysInPeriod).map((d, i) => {
       const totalForDay = d.amount;
       const totalAllServices = filteredServiceBreakdown.reduce((s, b) => s + b.cost, 0);
       const svcShare = totalAllServices > 0 ? svc.cost / totalAllServices : 0;
@@ -316,7 +314,7 @@ export default function Analytics() {
     return null;
   };
 
-  const dailyTrendData = costTrend.filter(d => d.amount > 0).slice(-trendWindow).map((d, i, arr) => ({
+  const dailyTrendData = costTrend.filter(d => d.amount > 0).slice(-daysInPeriod).map((d, i, arr) => ({
     ...d,
     previousAmount: arr[i - 1]?.amount || d.amount,
     change: i > 0 ? ((d.amount - arr[i - 1].amount) / arr[i - 1].amount * 100) : 0,
@@ -517,21 +515,11 @@ export default function Analytics() {
                       <MdBarChart className="h-5 w-5 text-primary" />
                       Daily Cost Trend
                     </CardTitle>
-                    {/* Gap #12: Selectable time period buttons */}
-                    <div className="flex items-center gap-1">
-                      <MdSchedule className="h-4 w-4 text-muted-foreground mr-1" />
-                      {([7, 14, 30, 90] as const).map(days => (
-                        <Button
-                          key={days}
-                          variant={trendWindow === days ? 'default' : 'outline'}
-                          size="sm"
-                          className="h-7 text-xs px-2.5"
-                          onClick={() => setTrendWindow(days)}
-                        >
-                          {days}d
-                        </Button>
-                      ))}
-                    </div>
+                    {/* Period label from global date filter */}
+                    <Badge variant="outline" className="text-xs gap-1">
+                      <MdSchedule className="h-3.5 w-3.5" />
+                      {daysInPeriod}d
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>

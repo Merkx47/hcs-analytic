@@ -292,7 +292,7 @@ export default function TagGroupForm() {
     <div className="h-full overflow-y-auto">
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b px-6 py-4">
-        <div className="flex items-center justify-between max-w-5xl mx-auto">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => setLocation('/tags')}>
               <MdArrowBack className="h-5 w-5" />
@@ -332,7 +332,7 @@ export default function TagGroupForm() {
 
       {/* Read-only banner for online groups */}
       {isOnlineGroup && (
-        <div className="max-w-5xl mx-auto px-6 pt-4">
+        <div className="w-full px-6 pt-4">
           <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200">
             <MdLock className="h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
@@ -345,7 +345,7 @@ export default function TagGroupForm() {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
+      <div className="w-full px-6 py-6 space-y-6">
         {/* === Section 1: Basic Info === */}
         <Card>
           <CardContent className="p-6">

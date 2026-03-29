@@ -33,6 +33,7 @@ import {
   flattenVDCTree,
   getAllVDCIds,
   mockTenants,
+  getDaysFromPreset,
 } from '@/lib/mock-data';
 import { TenantFilter } from '@/components/layout/tenant-filter';
 import {
@@ -389,9 +390,9 @@ function ResourceDetailDialog({
                   <span>{vdcName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Monthly Cost</span>
+                  <span className="text-muted-foreground">{daysInPeriod}d Cost</span>
                   <span className="font-mono font-semibold">
-                    {formatCurrency(resource.monthlyCost, currency as any)}
+                    {formatCurrency(resource.monthlyCost * periodScale, currency as any)}
                   </span>
                 </div>
               </div>
@@ -721,7 +722,7 @@ function collectLeafSummaries(
     return [{
       vdc: node,
       resourceCount: nodeResources.length,
-      totalCost: nodeResources.reduce((sum, r) => sum + r.monthlyCost, 0),
+      totalCost: nodeResources.reduce((sum, r) => sum + r.monthlyCost * periodScale, 0),
       running: nodeResources.filter((r) => r.status === 'running').length,
       stopped: nodeResources.filter((r) => r.status === 'stopped').length,
       errored: nodeResources.filter((r) => r.status === 'error').length,
@@ -743,7 +744,9 @@ function collectLeafSummaries(
 // =====================================================
 
 export default function Resources() {
-  const { currency, selectedTenantId, selectedRegion } = useFinOpsStore();
+  const { currency, selectedTenantId, selectedRegion, dateRange } = useFinOpsStore();
+  const daysInPeriod = useMemo(() => getDaysFromPreset(dateRange.preset), [dateRange.preset]);
+  const periodScale = daysInPeriod / 30; // monthlyCost is base-30, scale to selected period
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -849,10 +852,10 @@ export default function Resources() {
   const costMap = useMemo(() => {
     const map = new Map<string, number>();
     resources.forEach((r) => {
-      map.set(r.vdcId, (map.get(r.vdcId) || 0) + r.monthlyCost);
+      map.set(r.vdcId, (map.get(r.vdcId) || 0) + r.monthlyCost * periodScale);
     });
     return map;
-  }, [resources]);
+  }, [resources, periodScale]);
 
   // Get all VDC IDs under the selected VDC node
   const selectedVDCIds = useMemo(() => {
@@ -935,9 +938,9 @@ export default function Resources() {
     const running = filteredResources.filter((r) => r.status === 'running').length;
     const stopped = filteredResources.filter((r) => r.status === 'stopped').length;
     const errored = filteredResources.filter((r) => r.status === 'error').length;
-    const totalCost = filteredResources.reduce((sum, r) => sum + r.monthlyCost, 0);
+    const totalCost = filteredResources.reduce((sum, r) => sum + r.monthlyCost * periodScale, 0);
     return { running, stopped, errored, totalCost };
-  }, [filteredResources]);
+  }, [filteredResources, periodScale]);
 
   // For thumbnail view: group hierarchies by tenant
   const tenantHierarchies = useMemo(() => {
@@ -1106,7 +1109,7 @@ export default function Resources() {
                 </span>
               )}
               <span className="font-mono font-medium text-foreground">
-                {formatCompactCurrency(stats.totalCost, currency as any)}/mo
+                {formatCompactCurrency(stats.totalCost, currency as any)}/{daysInPeriod}d
               </span>
             </div>
           </div>
@@ -1424,7 +1427,7 @@ export default function Resources() {
                                 </td>
                                 <td className="px-4 py-2.5 text-right">
                                   <span className="text-sm font-mono font-medium whitespace-nowrap">
-                                    {formatCurrency(resource.monthlyCost, currency)}
+                                    {formatCurrency(resource.monthlyCost * periodScale, currency)}
                                   </span>
                                 </td>
                               </tr>
