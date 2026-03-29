@@ -35,6 +35,9 @@ const VALUE_TYPE_LABELS: Record<ValueType, string> = {
   date: 'DATE', json: 'JSON', list: 'LIST', enum: 'ENUM',
 };
 
+// Value types available in the selector (list, enum, json hidden for now)
+const ENABLED_VALUE_TYPES: ValueType[] = ['string', 'int', 'float', 'bool', 'date'];
+
 const VALUE_TYPE_HINTS: Record<ValueType, string> = {
   string: 'e.g. "production-web-01"',
   int: 'e.g. 42',
@@ -448,8 +451,15 @@ export default function TagGroupForm() {
                         >
                           <MdCloud className="h-4 w-4 text-emerald-600 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <span className="font-mono text-xs">{ok.key}</span>
-                            <span className="text-muted-foreground text-xs ml-2">from {ok.groupName}</span>
+                            <div>
+                              <span className="font-mono text-xs font-medium">{ok.key}</span>
+                              <span className="text-muted-foreground text-[10px] ml-2">({ok.groupName})</span>
+                            </div>
+                            {ok.allowedValues && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                                values: {ok.allowedValues}
+                              </p>
+                            )}
                           </div>
                           <Badge variant="outline" className="text-[10px]">{VALUE_TYPE_LABELS[ok.valueType]}</Badge>
                           {alreadyInForm ? (
@@ -558,7 +568,7 @@ export default function TagGroupForm() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {Object.entries(VALUE_TYPE_LABELS).map(([val, label]) => (
+                              {ENABLED_VALUE_TYPES.map(val => ({ val, label: VALUE_TYPE_LABELS[val] })).map(({ val, label }) => (
                                 <SelectItem key={val} value={val}>
                                   <span className="font-mono text-xs mr-2 opacity-50">{label}</span> {val}
                                 </SelectItem>

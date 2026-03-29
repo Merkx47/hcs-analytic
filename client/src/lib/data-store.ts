@@ -693,7 +693,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
     {
       id: 'grp-online-2', name: 'Environment', description: 'Environment classification synced from Huawei cloud', color: '#1E88E5',
       tags: [
-        { id: 'tk-ol-3', key: 'environment', valueType: 'enum', required: false, allowedValues: 'production,staging,development', description: 'Deployment environment from HCS', source: 'online' as TagSource },
+        { id: 'tk-ol-3', key: 'environment', valueType: 'string', required: false, allowedValues: '', description: 'Deployment environment from HCS', source: 'online' as TagSource },
       ],
       scope: 'all', scopeTargets: [], appliedTo: 378, createdAt: '2025-06-01', domain: 'online' as TagSource,
     },
