@@ -590,7 +590,7 @@ export default function TagGovernancePage() {
                           <span>{group.createdAt}</span>
                           <span>{group.appliedTo} resources</span>
                           <Badge variant="outline" className="text-[9px] h-4 px-1.5">
-                            {group.scope === 'all' ? 'Global' : group.scope === 'vdc' ? `${group.scopeTargets.length} VDCs` : `${group.scopeTargets.length} Resources`}
+                            {group.scope === 'all' ? 'All Resources' : group.scope === 'vdc' ? `${group.scopeTargets.length} VDCs` : `${group.scopeTargets.length} Resources`}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity">

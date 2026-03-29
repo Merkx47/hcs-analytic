@@ -688,21 +688,21 @@ export const useDataStore = create<DataStore>((set, get) => ({
         { id: 'tk-ol-1', key: '_sys_enterprise_project_id', valueType: 'string', required: false, allowedValues: '', description: 'HCS enterprise project UUID', source: 'online' as TagSource },
         { id: 'tk-ol-2', key: '_sys_enterprise_project_name', valueType: 'string', required: false, allowedValues: '', description: 'HCS enterprise project display name', source: 'online' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 489, createdAt: '2025-06-01', domain: 'online' as TagSource,
+      scope: 'all', scopeTargets: [], appliedTo: 512, createdAt: '2025-06-01', domain: 'online' as TagSource,
     },
     {
       id: 'grp-online-2', name: 'Environment', description: 'Environment classification synced from Huawei cloud', color: '#1E88E5',
       tags: [
         { id: 'tk-ol-3', key: 'environment', valueType: 'string', required: false, allowedValues: '', description: 'Deployment environment from HCS', source: 'online' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 378, createdAt: '2025-06-01', domain: 'online' as TagSource,
+      scope: 'all', scopeTargets: [], appliedTo: 512, createdAt: '2025-06-01', domain: 'online' as TagSource,
     },
     {
       id: 'grp-online-3', name: 'Department', description: 'Department tags synced from Huawei cloud', color: '#6D4C41',
       tags: [
         { id: 'tk-ol-4', key: 'department', valueType: 'string', required: false, allowedValues: '', description: 'Department name from HCS', source: 'online' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 265, createdAt: '2025-06-01', domain: 'online' as TagSource,
+      scope: 'all', scopeTargets: [], appliedTo: 512, createdAt: '2025-06-01', domain: 'online' as TagSource,
     },
     // ── Offline groups (user-created) ────────────────────────────────
     {
@@ -712,7 +712,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
         { id: 'tk-2', key: 'tier', valueType: 'enum', required: false, allowedValues: 'frontend,backend,data,infra', description: 'Application tier', source: 'offline' as TagSource },
         { id: 'tk-3', key: 'criticality', valueType: 'enum', required: false, allowedValues: 'critical,high,medium,low', description: 'Business criticality level', source: 'offline' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 312, createdAt: '2025-08-14', domain: 'offline' as TagSource,
+      scope: 'all', scopeTargets: [], appliedTo: 512, createdAt: '2025-08-14', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-2', name: 'Cost Attribution', description: 'Track cost allocation across business units and budgets', color: '#43A047',
@@ -721,7 +721,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
         { id: 'tk-5', key: 'budget_code', valueType: 'string', required: false, allowedValues: '', description: 'Annual budget allocation code', source: 'offline' as TagSource },
         { id: 'tk-6', key: 'chargeback_entity', valueType: 'string', required: false, allowedValues: '', description: 'Entity for internal chargeback', source: 'offline' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 287, createdAt: '2025-07-22', domain: 'offline' as TagSource,
+      scope: 'all', scopeTargets: [], appliedTo: 512, createdAt: '2025-07-22', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-3', name: 'Ownership & Access', description: 'Define resource ownership and access responsibility', color: '#FB8C00',
@@ -730,7 +730,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
         { id: 'tk-8', key: 'team', valueType: 'string', required: false, allowedValues: '', description: 'Responsible team name', source: 'offline' as TagSource },
         { id: 'tk-9', key: 'contact_channel', valueType: 'string', required: false, allowedValues: '', description: 'Slack channel or DL for alerts', source: 'offline' as TagSource },
       ],
-      scope: 'vdc', scopeTargets: ['VDC-Production', 'VDC-Staging'], appliedTo: 254, createdAt: '2025-09-03', domain: 'offline' as TagSource,
+      scope: 'vdc', scopeTargets: ['VDC-Production', 'VDC-Staging'], appliedTo: 143, createdAt: '2025-09-03', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-4', name: 'Project Tracking', description: 'Associate resources with projects and initiatives', color: '#8E24AA',
@@ -738,7 +738,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
         { id: 'tk-10', key: 'project', valueType: 'string', required: true, allowedValues: '', description: 'Project name or code', source: 'offline' as TagSource },
         { id: 'tk-11', key: 'sprint', valueType: 'string', required: false, allowedValues: '', description: 'Current sprint or iteration', source: 'offline' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 198, createdAt: '2025-10-11', domain: 'offline' as TagSource,
+      scope: 'all', scopeTargets: [], appliedTo: 512, createdAt: '2025-10-11', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-5', name: 'Compliance & Security', description: 'Tags for regulatory compliance and security classification', color: '#E53935',
@@ -748,7 +748,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
         { id: 'tk-14', key: 'department', valueType: 'string', required: true, allowedValues: '', description: 'Business department responsible', source: 'offline' as TagSource },
         { id: 'tk-15', key: 'audit_trail', valueType: 'bool', required: false, allowedValues: '', description: 'Whether audit logging is enabled', source: 'offline' as TagSource },
       ],
-      scope: 'resource', scopeTargets: ['ecs-prod-web-01', 'rds-main-cluster'], appliedTo: 341, createdAt: '2025-06-18', domain: 'offline' as TagSource,
+      scope: 'resource', scopeTargets: ['ecs-prod-web-01', 'rds-main-cluster'], appliedTo: 2, createdAt: '2025-06-18', domain: 'offline' as TagSource,
     },
     {
       id: 'grp-6', name: 'Lifecycle Management', description: 'Track resource lifecycle and expiration policies', color: '#00ACC1',
@@ -757,7 +757,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
         { id: 'tk-17', key: 'expiry_date', valueType: 'date', required: false, allowedValues: '', description: 'Expected resource decommission date', source: 'offline' as TagSource },
         { id: 'tk-18', key: 'auto_shutdown', valueType: 'bool', required: false, allowedValues: '', description: 'Whether auto-shutdown is enabled', source: 'offline' as TagSource },
       ],
-      scope: 'all', scopeTargets: [], appliedTo: 176, createdAt: '2025-11-05', domain: 'offline' as TagSource,
+      scope: 'all', scopeTargets: [], appliedTo: 512, createdAt: '2025-11-05', domain: 'offline' as TagSource,
     },
   ] as TagGroup[],
 
