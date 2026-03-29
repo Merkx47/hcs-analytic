@@ -1,4 +1,4 @@
-import { MdAdd, MdArrowBack, MdCheckCircle, MdClose, MdCloud, MdCloudOff, MdDelete, MdDns, MdLabel, MdLayers, MdLock, MdPublic, MdSearch, MdWarning } from 'react-icons/md';
+import { MdAdd, MdArrowBack, MdCheckCircle, MdClose, MdCloud, MdCloudOff, MdDelete, MdLabel, MdLock, MdSearch, MdWarning } from 'react-icons/md';
 import { useState, useCallback, useMemo } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useDataStore, type ValueType, type TagKey, type TagGroupScope, type TagSource } from '@/lib/data-store';
 import { useFinOpsStore } from '@/lib/finops-store';
-import { generateResources, generateAllVDCHierarchies, flattenVDCTree } from '@/lib/mock-data';
+import { generateAllVDCHierarchies, flattenVDCTree } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 
 const GROUP_COLORS = [
@@ -55,7 +55,7 @@ export default function TagGroupForm() {
   const editId = editParams?.id;
 
   const { tagGroups, addTagGroup, updateTagGroup, getTagGroup, getAllTagKeys } = useDataStore();
-  const { selectedTenantId, selectedRegion } = useFinOpsStore();
+  const { selectedTenantId } = useFinOpsStore();
 
   // Load existing group if editing
   const existingGroup = editId ? getTagGroup(editId) : undefined;
@@ -74,7 +74,7 @@ export default function TagGroupForm() {
   const [formTags, setFormTags] = useState<TagKey[]>(
     existingGroup?.tags.map(t => ({ ...t })) || []
   );
-  const [formScope, setFormScope] = useState<TagGroupScope>(existingGroup?.scope || 'all');
+  const [formScope] = useState<TagGroupScope>(existingGroup?.scope || 'vdc');
   const [formScopeTargets, setFormScopeTargets] = useState<string[]>(existingGroup?.scopeTargets || []);
 
   // Chip input for enum/list types
@@ -106,19 +106,12 @@ export default function TagGroupForm() {
   // VDC and resource data for scope selector
   const allVDCHierarchies = useMemo(() => generateAllVDCHierarchies(selectedTenantId), [selectedTenantId]);
   const allVDCs = useMemo(() => allVDCHierarchies.flatMap(h => flattenVDCTree(h)), [allVDCHierarchies]);
-  const allResources = useMemo(() => generateResources(selectedTenantId, selectedRegion), [selectedTenantId, selectedRegion]);
 
   const filteredVDCs = useMemo(() => {
     if (!scopeSearch) return allVDCs;
     const q = scopeSearch.toLowerCase();
     return allVDCs.filter(v => v.name.toLowerCase().includes(q) || v.id.toLowerCase().includes(q));
   }, [allVDCs, scopeSearch]);
-
-  const filteredResources = useMemo(() => {
-    if (!scopeSearch) return allResources.slice(0, 50);
-    const q = scopeSearch.toLowerCase();
-    return allResources.filter(r => r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)).slice(0, 50);
-  }, [allResources, scopeSearch]);
 
   // ── Duplicate detection ──────────────────────────────────────────
   const getDuplicateWarning = useCallback((keyName: string, currentTagId: string) => {
@@ -248,12 +241,6 @@ export default function TagGroupForm() {
     );
   }, []);
 
-  // Scope toggle
-  const toggleScopeTarget = useCallback((id: string) => {
-    setFormScopeTargets(prev =>
-      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
-    );
-  }, []);
 
   // Save
   const handleSave = useCallback(() => {
@@ -809,42 +796,21 @@ export default function TagGroupForm() {
           <CardContent className="p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Scope Assignment</h2>
 
-            {/* Scope type selector - card-based */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {[
-                { value: 'all' as const, icon: MdPublic, label: 'All Resources', desc: 'Applies globally to every resource' },
-                { value: 'vdc' as const, icon: MdLayers, label: 'Specific VDCs', desc: 'Target specific VDC hierarchies' },
-                { value: 'resource' as const, icon: MdDns, label: 'Specific Resources', desc: 'Target individual resources' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  disabled={isOnlineGroup}
-                  onClick={() => { setFormScope(opt.value); setFormScopeTargets([]); setScopeSearch(''); }}
-                  className={cn(
-                    'p-4 rounded-lg border text-left transition-all',
-                    formScope === opt.value
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30',
-                    isOnlineGroup && 'cursor-not-allowed opacity-70'
-                  )}
-                >
-                  <opt.icon className={cn('h-5 w-5 mb-2', formScope === opt.value ? 'text-primary' : 'text-muted-foreground')} />
-                  <p className="text-sm font-medium">{opt.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
-                </button>
-              ))}
-            </div>
+            {/* Scope: VDC only — select one VDC */}
+            <p className="text-sm text-muted-foreground mb-3">
+              Select the VDC this tag group applies to. All resources within the VDC will inherit the group.
+            </p>
 
-            {/* VDC selector */}
-            {formScope === 'vdc' && !isOnlineGroup && (
+            {/* Single VDC selector */}
+            {!isOnlineGroup && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Select VDCs to apply this tag group to ({formScopeTargets.length} selected)
+                    {formScopeTargets.length === 0 ? 'No VDC selected' : '1 VDC selected'}
                   </p>
                   {formScopeTargets.length > 0 && (
                     <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setFormScopeTargets([])}>
-                      Clear all
+                      Clear
                     </Button>
                   )}
                 </div>
@@ -858,7 +824,7 @@ export default function TagGroupForm() {
                   />
                 </div>
 
-                {/* Selected chips */}
+                {/* Selected VDC */}
                 {formScopeTargets.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {formScopeTargets.map(id => {
@@ -866,7 +832,7 @@ export default function TagGroupForm() {
                       return (
                         <Badge key={id} variant="secondary" className="text-xs gap-1 pr-1">
                           {vdc?.name || id}
-                          <button onClick={() => toggleScopeTarget(id)} className="ml-1 hover:text-destructive">
+                          <button onClick={() => setFormScopeTargets([])} className="ml-1 hover:text-destructive">
                             <MdClose className="h-3 w-3" />
                           </button>
                         </Badge>
@@ -875,21 +841,21 @@ export default function TagGroupForm() {
                   </div>
                 )}
 
-                {/* VDC list */}
+                {/* VDC list — single select */}
                 <div className="border rounded-lg max-h-[300px] overflow-y-auto divide-y">
                   {filteredVDCs.map(vdc => {
                     const isSelected = formScopeTargets.includes(vdc.id);
                     return (
                       <button
                         key={vdc.id}
-                        onClick={() => toggleScopeTarget(vdc.id)}
+                        onClick={() => setFormScopeTargets(isSelected ? [] : [vdc.id])}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
                           isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'
                         )}
                       >
                         <div className={cn(
-                          'h-5 w-5 rounded border flex items-center justify-center flex-shrink-0',
+                          'h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0',
                           isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-border'
                         )}>
                           {isSelected && <MdCheckCircle className="h-3.5 w-3.5" />}
@@ -908,94 +874,6 @@ export default function TagGroupForm() {
                     <div className="text-center py-8 text-sm text-muted-foreground">No VDCs match your search</div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Resource selector */}
-            {formScope === 'resource' && !isOnlineGroup && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Select resources to apply this tag group to ({formScopeTargets.length} selected)
-                  </p>
-                  {formScopeTargets.length > 0 && (
-                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setFormScopeTargets([])}>
-                      Clear all
-                    </Button>
-                  )}
-                </div>
-                <div className="relative">
-                  <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9 h-9"
-                    placeholder="Search resources by name or ID..."
-                    value={scopeSearch}
-                    onChange={e => setScopeSearch(e.target.value)}
-                  />
-                </div>
-
-                {/* Selected chips */}
-                {formScopeTargets.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {formScopeTargets.map(id => {
-                      const res = allResources.find(r => r.id === id);
-                      return (
-                        <Badge key={id} variant="secondary" className="text-xs gap-1 pr-1">
-                          {res?.name || id}
-                          <button onClick={() => toggleScopeTarget(id)} className="ml-1 hover:text-destructive">
-                            <MdClose className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Resource list */}
-                <div className="border rounded-lg max-h-[300px] overflow-y-auto divide-y">
-                  {filteredResources.map(res => {
-                    const isSelected = formScopeTargets.includes(res.id);
-                    return (
-                      <button
-                        key={res.id}
-                        onClick={() => toggleScopeTarget(res.id)}
-                        className={cn(
-                          'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
-                          isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'
-                        )}
-                      >
-                        <div className={cn(
-                          'h-5 w-5 rounded border flex items-center justify-center flex-shrink-0',
-                          isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-border'
-                        )}>
-                          {isSelected && <MdCheckCircle className="h-3.5 w-3.5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{res.name}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {res.service} &middot; {res.region} &middot; {res.id}
-                          </p>
-                        </div>
-                        <Badge variant="outline" className="text-[10px] flex-shrink-0">{res.service}</Badge>
-                      </button>
-                    );
-                  })}
-                  {filteredResources.length === 0 && (
-                    <div className="text-center py-8 text-sm text-muted-foreground">No resources match your search</div>
-                  )}
-                  {!scopeSearch && allResources.length > 50 && (
-                    <div className="text-center py-2 text-xs text-muted-foreground bg-muted/30">
-                      Showing first 50 of {allResources.length} resources. Use search to find more.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {formScope === 'all' && (
-              <div className="text-center py-8 border border-dashed rounded-lg">
-                <MdPublic className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">This tag group will apply to all resources across all VDCs.</p>
               </div>
             )}
           </CardContent>
